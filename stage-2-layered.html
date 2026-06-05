@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>阶段二 · 分层架构时代 — 产品架构的前世今生</title>
+  <style>
+    /* ═══════════════════════════════════════════════
+       Editorial — Monocle / FT magazine 方向
+       Palette & Typography
+       ═══════════════════════════════════════════════ */
+    :root {
+      --bg:      oklch(98% 0.004 95);
+      --surface: oklch(100% 0.002 95);
+      --fg:      oklch(20% 0.018 70);
+      --muted:   oklch(48% 0.012 70);
+      --border:  oklch(90% 0.006 95);
+      --accent:  oklch(52% 0.10 28);
+
+      --font-display: 'Iowan Old Style', 'Charter', Georgia, 'Noto Serif SC', serif;
+      --font-body:    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', system-ui, sans-serif;
+      --font-mono:    'SF Mono', 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+
+      --max-width: 720px;
+      --gutter: 24px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      scroll-behavior: smooth;
+      scroll-padding-top: 80px;
+    }
+
+    body {
+      font-family: var(--font-body);
+      color: var(--fg);
+      background: var(--bg);
+      line-height: 1.75;
+      font-size: 17px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Navigation ── */
+    .nav-bar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      background: rgba(252, 252, 250, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 var(--gutter);
+    }
+    .nav-inner {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+    }
+    .nav-brand {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .nav-brand strong {
+      color: var(--fg);
+      font-weight: 600;
+    }
+    .nav-links {
+      display: flex;
+      gap: 20px;
+      list-style: none;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .nav-links::-webkit-scrollbar {
+      display: none;
+    }
+    .nav-links a {
+      font-size: 13px;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s;
+      position: relative;
+    }
+    .nav-links a:hover,
+    .nav-links a.active {
+      color: var(--fg);
+    }
+    .nav-links a.active::after {
+      content: '';
+      position: absolute;
+      bottom: -4px; left: 0; right: 0;
+      height: 1.5px;
+      background: var(--accent);
+    }
+    .nav-links a.nav-home {
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    /* ── Progress bar ── */
+    .progress-track {
+      position: fixed;
+      top: 56px; left: 0; right: 0;
+      height: 2px;
+      background: var(--border);
+      z-index: 100;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      width: 0%;
+      transition: width 0.1s linear;
+    }
+
+    /* ── Main container ── */
+    main {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 var(--gutter);
+    }
+
+    /* ── Section spacing ── */
+    section {
+      padding: 80px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    section:last-of-type {
+      border-bottom: none;
+    }
+
+    /* ── Typography ── */
+    h1, h2, h3 {
+      font-family: var(--font-display);
+      font-weight: 600;
+      line-height: 1.2;
+      color: var(--fg);
+    }
+    h1 {
+      font-size: clamp(42px, 6vw, 64px);
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+    h2 {
+      font-size: clamp(28px, 4vw, 40px);
+      margin-bottom: 32px;
+      letter-spacing: -0.01em;
+    }
+    h3 {
+      font-size: 22px;
+      margin-bottom: 16px;
+      margin-top: 40px;
+    }
+    .section-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 12px;
+      display: block;
+    }
+    .lead {
+      font-size: 20px;
+      line-height: 1.65;
+      color: var(--muted);
+      margin-bottom: 40px;
+      font-family: var(--font-display);
+    }
+    p {
+      margin-bottom: 20px;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Hero ── */
+    .hero {
+      padding-top: 140px;
+      padding-bottom: 60px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .stage-badge {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      padding: 6px 16px;
+      margin-bottom: 32px;
+    }
+    .hero h1 {
+      margin-bottom: 12px;
+    }
+    .hero-subtitle {
+      font-family: var(--font-display);
+      font-size: 20px;
+      color: var(--muted);
+      margin-bottom: 48px;
+    }
+    .hero-meta {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+    }
+
+    /* ── Timeline strip ── */
+    .timeline-strip {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 48px;
+      flex-wrap: wrap;
+    }
+    .timeline-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--border);
+    }
+    .timeline-dot.active {
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(180, 80, 40, 0.15);
+    }
+    .timeline-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 8px;
+      text-align: center;
+      width: 100%;
+    }
+
+    /* ── Pull quote ── */
+    .pull-quote {
+      border-left: 3px solid var(--accent);
+      padding-left: 28px;
+      margin: 48px 0;
+      font-family: var(--font-display);
+      font-size: 22px;
+      line-height: 1.5;
+      color: var(--fg);
+    }
+    .pull-quote cite {
+      display: block;
+      margin-top: 12px;
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-style: normal;
+      color: var(--muted);
+    }
+
+    /* ── Story block ── */
+    .story-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 32px;
+      margin: 40px 0;
+    }
+    .story-block h4 {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+
+    /* ── Timeline events ── */
+    .events-list {
+      list-style: none;
+      margin: 32px 0;
+    }
+    .events-list li {
+      display: flex;
+      gap: 20px;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .events-list li:last-child {
+      border-bottom: none;
+    }
+    .event-year {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--accent);
+      min-width: 56px;
+      font-weight: 600;
+    }
+    .event-text {
+      font-size: 15px;
+      color: var(--fg);
+    }
+
+    /* ── Personas ── */
+    .personas-grid {
+      display: grid;
+      gap: 24px;
+      margin: 40px 0;
+    }
+    .persona-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 32px;
+    }
+    .persona-card h4 {
+      font-family: var(--font-display);
+      font-size: 20px;
+      margin-bottom: 4px;
+    }
+    .persona-role {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+    .persona-scene {
+      font-size: 15px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+    .persona-scene strong {
+      color: var(--fg);
+    }
+
+    /* ── Product cards ── */
+    .products-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      margin: 32px 0;
+    }
+    .product-card {
+      border: 1px solid var(--border);
+      padding: 24px;
+      transition: border-color 0.2s;
+    }
+    .product-card:hover {
+      border-color: var(--accent);
+    }
+    .product-card h4 {
+      font-family: var(--font-display);
+      font-size: 18px;
+      margin-bottom: 6px;
+    }
+    .product-card .product-year {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+    .product-card p {
+      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 0;
+    }
+
+    /* ── Insight card ── */
+    .insight-grid {
+      display: grid;
+      gap: 20px;
+      margin: 32px 0;
+    }
+    .insight-card {
+      border-left: 3px solid var(--accent);
+      padding-left: 24px;
+    }
+    .insight-card h4 {
+      font-family: var(--font-display);
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+    .insight-card p {
+      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 0;
+    }
+
+    /* ── Keywords ── */
+    .keyword-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      margin: 32px 0;
+    }
+    .keyword-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 24px;
+    }
+    .keyword-card h4 {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    .keyword-card .keyword-cn {
+      font-family: var(--font-display);
+      font-size: 18px;
+      margin-bottom: 4px;
+    }
+    .keyword-card .keyword-en {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .keyword-card p {
+      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 0;
+    }
+
+    /* ── Compare ── */
+    .compare-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 32px;
+      margin: 32px 0;
+    }
+    .compare-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 20px;
+    }
+    .compare-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .compare-row:last-child {
+      border-bottom: none;
+    }
+    .compare-cell h5 {
+      font-family: var(--font-display);
+      font-size: 16px;
+      margin-bottom: 6px;
+    }
+    .compare-cell p {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 0;
+    }
+    .compare-vs {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* ── Connection map ── */
+    .connection-list {
+      margin: 32px 0;
+      padding-left: 0;
+      list-style: none;
+    }
+    .connection-list li {
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 15px;
+    }
+    .connection-list li:last-child {
+      border-bottom: none;
+    }
+    .connection-list .conn-keyword {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--accent);
+    }
+    .connection-list .conn-arrow {
+      color: var(--muted);
+      margin: 0 8px;
+    }
+
+    /* ── Courses ── */
+    .courses-list {
+      display: grid;
+      gap: 16px;
+      margin: 32px 0;
+    }
+    .course-item {
+      border: 1px solid var(--border);
+      padding: 24px;
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+    }
+    .course-num {
+      font-family: var(--font-mono);
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--accent);
+      line-height: 1;
+      min-width: 36px;
+    }
+    .course-info h4 {
+      font-family: var(--font-display);
+      font-size: 18px;
+      margin-bottom: 4px;
+    }
+    .course-meta {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    .course-info p {
+      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 0;
+    }
+    .course-tag {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 2px 8px;
+      margin-top: 10px;
+    }
+
+    /* ── Next stage teaser ── */
+    .teaser {
+      text-align: center;
+      padding: 80px 0;
+    }
+    .teaser h2 {
+      margin-bottom: 16px;
+    }
+    .teaser p {
+      color: var(--muted);
+      margin-bottom: 32px;
+    }
+    .teaser-btn {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      padding: 10px 28px;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .teaser-btn:hover {
+      background: var(--accent);
+      color: var(--surface);
+      text-decoration: none;
+    }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 48px var(--gutter);
+      border-top: 1px solid var(--border);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* ── Responsive ── */
+    @media (min-width: 640px) {
+      .personas-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .products-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .keyword-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .insight-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    @media (min-width: 860px) {
+      .personas-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      .products-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Progress -->
+  <div class="progress-track">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="nav-bar">
+    <div class="nav-inner">
+      <div class="nav-brand"><strong>架构演进</strong> / 阶段二</div>
+      <ul class="nav-links">
+        <li><a href="index.html" class="nav-home">← 首页</a></li>
+        <li><a href="#why" data-section="why">起源</a></li>
+        <li><a href="#people" data-section="people">人物</a></li>
+        <li><a href="#products" data-section="products">产品</a></li>
+        <li><a href="#mind" data-section="mind">认知</a></li>
+        <li><a href="#keywords" data-section="keywords">关键词</a></li>
+        <li><a href="#courses" data-section="courses">课程</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <!-- ═══════════════════════════════════════════════
+         HERO
+         ═══════════════════════════════════════════════ -->
+    <header class="hero">
+      <div class="stage-badge">阶段二 / 共八阶段</div>
+      <h1>分层架构时代</h1>
+      <p class="hero-subtitle">1990s – 2000s · 当代码开始分层，但身体还在一起</p>
+      <p class="hero-meta">产品架构演进之旅 · 面向 AI 产品经理的叙事课件</p>
+
+      <div class="timeline-strip">
+        <div class="timeline-dot"></div>
+        <div class="timeline-dot active"></div>
+        <div class="timeline-dot"></div>
+        <div class="timeline-dot"></div>
+        <div class="timeline-dot"></div>
+        <div class="timeline-dot"></div>
+        <div class="timeline-label">单体 → 分层 → SOA → 微服务 → 云原生 → Prompt → RAG+Agent → Multi-Agent</div>
+      </div>
+    </header>
+
+    <!-- ═══════════════════════════════════════════════
+         01 为什么会诞生
+         ═══════════════════════════════════════════════ -->
+    <section id="why">
+      <span class="section-label">01 / 起源</span>
+      <h2>从"一坨代码"到"三层楼房"</h2>
+      <p class="lead">
+        单体架构运行了二十多年，企业越来越发现一个问题：代码像一团越缠越紧的毛线，动一根线，整团都在抖。而与此同时，一场更大的风暴正在酝酿——互联网来了。
+      </p>
+
+      <p>
+        要理解分层架构为什么诞生，我们必须先回到<strong>单体架构晚期的痛苦</strong>。到了 1980 年代末，大型企业的软件系统已经积累了数十万甚至上百万行代码。所有的界面逻辑、业务规则、数据操作都混在一起。一个新来的程序员想修改一个报表功能，结果不小心把订单模块搞坏了——因为它们是同一堆代码。
+      </p>
+
+      <div class="pull-quote">
+        " spaghetti code（意大利面条式代码）——你想找一根面条，结果发现所有面条都缠在一起。"
+        <cite>—— 1990 年代软件工程界的流行比喻</cite>
+      </div>
+
+      <p>
+        <strong>关键转折点不是某一个单一事件，而是四股力量的汇聚：</strong>
+      </p>
+
+      <div class="story-block">
+        <h4>四股推动力</h4>
+        <p>
+          <strong>① 互联网诞生（1991-1995）：</strong>Tim Berners-Lee 在 1991 年发布了第一个网页浏览器，1993 年 Mosaic 让普通人也能上网，1995 年 Netscape 上市引发了互联网热潮。企业突然意识到：我的系统不能只给内部员工用了，它要<strong>面对全世界的用户</strong>。这意味着系统必须能同时服务成千上万的人，而且界面必须是图形化的网页，而不是绿色的命令行终端。
+        </p>
+        <p style="margin-top:16px">
+          <strong>② Java 语言革命（1995）：</strong>Sun 公司发布了 Java，喊出"Write Once, Run Anywhere"。这对企业来说意味着什么？以前写的大型机程序只能在 IBM 机器上跑，现在同一套代码可以在 Windows、Mac、Unix 上跑。企业第一次有了<strong>跨平台</strong>的选项，不再被单一硬件厂商绑架。
+        </p>
+        <p style="margin-top:16px">
+          <strong>③ 面向对象编程成熟（1980s-1990s）：</strong>C++（1985）和 Java（1995）把"对象"的概念带入了主流。工程师们开始思考：如果把代码组织成一个个独立的"对象"，每个对象只负责一件事，是不是更好维护？这种思维方式直接催生了"分层"——既然对象可以独立，那不同职责的代码为什么不能分开？
+        </p>
+        <p style="margin-top:16px">
+          <strong>④ 企业竞争加速（1990s）：</strong>全球化竞争加剧，企业需要更快地响应市场。但单体架构的修改周期以月计算。业务部门说"我们下周要做促销活动"，IT 部门说"排期在三个月后"。这种速度上的错配让企业开始质疑：<strong>是不是我们的软件本身出了问题？</strong>
+        </p>
+      </div>
+
+      <p>
+        那么，<strong>科学认知发生了怎样的变化</strong>？在早期，人们认为"程序 = 一段连续的指令序列"——从上到下依次执行。但到了 1990 年代，软件工程的学术界开始流行一个新概念：<strong>关注点分离（Separation of Concerns）</strong>。核心思想是：人类大脑处理复杂事物的最佳方式是<strong>分而治之</strong>。不要试图同时考虑所有事情，而是把问题拆成几个层次，每一层只关心自己的问题。
+      </p>
+
+      <p>
+        为什么是<strong>分层</strong>而不是别的方向？这个问题其实很有趣。人类天生喜欢分层——公司里有管理层、执行层、操作层；社会里有上层、中层、下层；甚至我们的大脑皮层也是分层的。分层架构不是某个天才的灵光一闪，而是<strong>人类认知模式在软件中的投射</strong>。"把显示的事情交给一层，把业务规则交给一层，把数据存取交给一层"——这个想法如此自然，以至于当它被提出来后，几乎所有人都觉得"对啊，本来就该这样"。
+      </p>
+
+      <p>
+        但请注意：分层架构<strong>并没有打破单体</strong>。代码逻辑上分成了三层，但物理上仍然部署在同一个服务器上。这就像一栋三层楼房——虽然每层功能不同，但它们仍然在同一栋建筑里。真正把建筑拆开的，还要再等十年。
+      </p>
+
+      <h3>关键事件时间线</h3>
+      <ul class="events-list">
+        <li>
+          <span class="event-year">1991</span>
+          <span class="event-text">Tim Berners-Lee 发布第一个网页浏览器和 HTTP 协议，World Wide Web 诞生。</span>
+        </li>
+        <li>
+          <span class="event-year">1993</span>
+          <span class="event-text">Mosaic 浏览器发布，图形化网页进入大众视野。普通人第一次能在网页上看到图片。</span>
+        </li>
+        <li>
+          <span class="event-year">1994</span>
+          <span class="event-text">Amazon 成立，Yahoo 成立。电子商务时代萌芽。"在网上卖东西"从幻想变成现实。</span>
+        </li>
+        <li>
+          <span class="event-year">1995</span>
+          <span class="event-text">Java 发布、JavaScript 诞生、Windows 95 发布、Netscape 上市。这是互联网革命的元年。</span>
+        </li>
+        <li>
+          <span class="event-year">1996</span>
+          <span class="event-text">J2EE 规范开始制定（当时叫 J2SE + Servlet），企业级 Java 应用服务器概念诞生。</span>
+        </li>
+        <li>
+          <span class="event-year">1998</span>
+          <span class="event-text">Google 成立。"搜索"成为互联网的入口。同年，Sun 发布 J2EE 1.0，分层企业应用有了标准。</span>
+        </li>
+        <li>
+          <span class="event-year">2001</span>
+          <span class="event-text">互联网泡沫破裂，但留下的基础设施（浏览器、Java、Web 服务器）成为下一代应用的基石。</span>
+        </li>
+      </ul>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════
+         02 那个时代的人
+         ═══════════════════════════════════════════════ -->
+    <section id="people">
+      <span class="section-label">02 / 人物</span>
+      <h2>那个时代的人，在干什么</h2>
+      <p class="lead">
+        1990 年代到 2000 年代初，办公室里的风景已经大不一样。穿孔卡片消失了，取而代之的是 CRT 显示器和鼠标。而最关键的是——互联网让"产品经理"这个角色开始萌芽。
+      </p>
+
+      <div class="personas-grid">
+        <div class="persona-card">
+          <h4>小陈 · Java 程序员</h4>
+          <div class="persona-role">1998 – 2005 / 互联网泡沫前后</div>
+          <div class="persona-scene">
+            小陈的工位上放着一台<strong>CRT 显示器</strong>（又大又沉，辐射能把脸烤热），屏幕上是深蓝色的 IDE 界面。他正在写一个 Servlet——这是 Java 处理 Web 请求的基础组件。他每天都要纠结一个问题："这段代码该放在 Controller 层还是 Service 层？" 他的团队刚转型用了<strong>Struts 框架</strong>，每个人都在学习 MVC 怎么写。小陈最骄傲的事情是：他写了一个 JavaBean，被三个不同模块复用了——这在单体时代是不可想象的。但他最痛苦的事情是：每次改完代码要<strong>重启整个 Tomcat 服务器</strong>，等 2 分钟才能看到效果。"要是能把界面和逻辑分开部署就好了"——他常常这样想，但不知道十年后这真的会实现。
+          </div>
+        </div>
+
+        <div class="persona-card">
+          <h4>小美 · 需求分析师 / UML 画图师</h4>
+          <div class="persona-role">1995 – 2005 / 最接近"产品经理"前身</div>
+          <div class="persona-scene">
+            小美的桌上堆满了<strong>Rational Rose</strong> 打印出来的 UML 图——用例图、类图、时序图、状态图……她用这些图和开发团队"对话"。在还没有"产品经理"这个词的年代，她就是<strong>业务和技术之间的翻译官</strong>。业务部门说"客户下单后应该收到确认邮件"，小美要把这句话翻译成：一个用例（Use Case），触发一个时序图中的消息流，最终映射到数据库表的一个字段变更。她最大的武器不是代码能力，而是<strong>画图能力</strong>。她常常加班到深夜，因为明天要给客户演示系统原型——而"原型"是一堆静态 HTML 页面，点一下链接跳到下一张静态页面。但客户看了之后惊呼："这和真的一样！"
+          </div>
+        </div>
+
+        <div class="persona-card">
+          <h4>阿强 · 网吧里的普通网民</h4>
+          <div class="persona-role">1998 – 2005 / 第一代互联网用户</div>
+          <div class="persona-scene">
+            阿强每周去两次网吧，一小时 3 块钱。他打开 Netscape 或 IE 浏览器，在地址栏输入 <code>www.yahoo.com</code>，看到一个密密麻麻的<strong>分类目录</strong>——就像一本黄页。他点击"体育"，找到"足球"，再找到"意甲"，终于看到新闻。他也用 Hotmail 收发邮件，用 ICQ 和网友聊天（那个"哦哦"的敲门声是时代的标志）。他不知道什么是 MVC，什么是三层架构，但他隐隐约约感觉到：<strong>网页上的东西越来越丰富了</strong>——以前只能看文字，现在能看图片、能填表单、甚至能在 eBay 上买东西。他点击"购买"按钮时，根本不知道背后有一个 Java Servlet 正在处理他的请求，一个 Oracle 数据库正在扣减库存，一个邮件服务器正在给他发确认信。但这正是分层架构的意义：<strong>用户不需要知道底层，每一层都默默做好自己的事。</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="pull-quote">
+        "1998 年，我第一次在浏览器里填了一个表单，点提交，第二天收到了 UPS 送来的包裹。那一刻我知道，世界变了。"
+        <cite>—— 一位早期 Amazon 用户的回忆</cite>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════
+         03 涌现的产品
+         ═══════════════════════════════════════════════ -->
+    <section id="products">
+      <span class="section-label">03 / 产品</span>
+      <h2>那个时代诞生了什么</h2>
+      <p class="lead">
+        分层架构时代是现代互联网产品的摇篮。我们今天使用的几乎所有互联网服务，都可以在这个时代找到雏形。
+      </p>
+
+      <div class="products-grid">
+        <div class="product-card">
+          <h4>Java / J2EE 平台</h4>
+          <div class="product-year">1995 · 编程语言 & 企业平台</div>
+          <p>Sun 公司推出的跨平台编程语言及企业级开发规范。J2EE 定义了 Servlet（处理请求）、JSP（生成页面）、EJB（业务逻辑）、JDBC（数据库访问）等分层标准。它让"分层"从个人习惯变成了行业标准。</p>
+        </div>
+        <div class="product-card">
+          <h4>Apache HTTP Server</h4>
+          <div class="product-year">1995 · Web 服务器</div>
+          <p>世界上使用最广泛的 Web 服务器软件。它就像一个"前台接待员"——所有用户请求先到它这里，它再把请求转给后面的应用服务器处理。这是分层架构中"表示层"的基础设施。</p>
+        </div>
+        <div class="product-card">
+          <h4>Amazon.com</h4>
+          <div class="product-year">1994 · 电子商务</div>
+          <p>从在线书店起步， Jeff Bezos 选择了图书作为切入点因为"图书品类最多、标准化程度最高"。Amazon 是最早将分层架构用于大规模电商的企业之一——前端网页、订单处理、库存管理、支付网关，各司其职。</p>
+        </div>
+        <div class="product-card">
+          <h4>Google 搜索引擎</h4>
+          <div class="product-year">1998 · 搜索 & 信息检索</div>
+          <p>PageRank 算法让搜索结果质量远超 Yahoo 的人工目录。Google 的技术架构从一开始就采用了分层设计——爬虫层、索引层、查询层、展示层——虽然当时还是单体部署，但逻辑上已经高度分层。</p>
+        </div>
+        <div class="product-card">
+          <h4>SAP R/3</h4>
+          <div class="product-year">1992 · 企业资源计划</div>
+          <p>SAP 从大型机时代的 R/2 迁移到 C/S 架构的 R/3，支持 Windows 和 Unix 客户端。它将财务、人力资源、生产、销售模块分层设计，虽然仍在同一个代码库中，但已经能按模块独立升级。</p>
+        </div>
+        <div class="product-card">
+          <h4>eBay 在线拍卖</h4>
+          <div class="product-year">1995 · C2C 电商</div>
+          <p>Pierre Omidyar 在 Labour Day 周末搭起了 eBay 的第一个版本。它证明了陌生人之间可以在互联网上完成交易。eBay 的早期架构是典型的三层：ASP 页面（表示层）+ COM 组件（业务层）+ SQL Server（数据层）。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════
+         04 心理学认知
+         ═══════════════════════════════════════════════ -->
+    <section id="mind">
+      <span class="section-label">04 / 认知</span>
+      <h2>那个时代的人，心里在想什么</h2>
+      <p class="lead">
+        分层架构不仅改变了代码的组织方式，更深刻地改变了人们对软件的认知。这四个心理转变，奠定了现代软件工程的基础。
+      </p>
+
+      <div class="insight-grid">
+        <div class="insight-card">
+          <h4>认知一：分层 = 秩序 = 可控</h4>
+          <p>人们开始相信，把复杂系统拆成清晰的层次，就像把杂乱的衣柜按季节分类——找东西更快，整理更容易。"表示层只管显示，业务层只管规则，数据层只管存取"——这种清晰的边界感给了工程师巨大的心理安全感。不管系统多复杂，只要层次清晰，就觉得"尽在掌握"。</p>
+        </div>
+        <div class="insight-card">
+          <h4>认知二：对象 = 复用 = 省钱</h4>
+          <p>面向对象编程带来的最大心理冲击是："原来我可以写一段代码，然后在很多地方重复使用！" 这在商业上极具诱惑力——"写一次，到处用"意味着开发成本大幅下降。企业开始相信，投资好的软件设计（分层 + 对象）能在长期节省更多的钱。</p>
+        </div>
+        <div class="insight-card">
+          <h4>认知三：Web = 新世界的大门</h4>
+          <p>对非技术人员来说，浏览器是一扇通往未知世界的窗。"原来我不需要装任何软件，只要在浏览器里输入地址就能用"——这种认知彻底改变了软件的交付方式。对企业来说，这意味着客户可以在世界任何地方访问系统。分层架构让这种全球可访问性成为可能。</p>
+        </div>
+        <div class="insight-card">
+          <h4>认知四：软件 > 硬件（价值认知翻转）</h4>
+          <p>1990 年代发生了惊人的认知逆转：软件开始比硬件更值钱。Microsoft 的市值超过 IBM，Oracle 的数据库比服务器更贵。人们意识到：硬件会贬值，但好的软件设计可以持续创造价值。这种认知推动了企业对软件架构的投资——愿意花更多钱请架构师做好分层设计。</p>
+        </div>
+      </div>
+
+      <div class="pull-quote">
+        "1995 年之前，IT 部门是'成本中心'；1995 年之后，越来越多的公司开始把 IT 看作'竞争力来源'。"
+        <cite>——《The World is Flat》作者 Thomas Friedman</cite>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════
+         05 关键词
+         ═══════════════════════════════════════════════ -->
+    <section id="keywords">
+      <span class="section-label">05 / 关键词</span>
+      <h2>关键词词典</h2>
+      <p class="lead">
+        分层架构时代诞生了一套全新的词汇。这些词今天仍在广泛使用——理解它们，你就理解了现代软件工程的底层逻辑。
+      </p>
+
+      <div class="keyword-grid">
+        <div class="keyword-card">
+          <h4>KEYWORD 01</h4>
+          <div class="keyword-cn">MVC</div>
+          <div class="keyword-en">Model-View-Controller</div>
+          <p>一种软件设计模式，把应用分成三部分：<strong>Model（数据）</strong>负责存取数据，<strong>View（视图）</strong>负责显示界面，<strong>Controller（控制器）</strong>负责接收用户输入并协调 Model 和 View。就像一家餐厅：Model 是后厨（准备食材），View 是摆盘（端上桌的样子），Controller 是服务员（把客人的需求传达给后厨，再把菜端上来）。</p>
+        </div>
+        <div class="keyword-card">
+          <h4>KEYWORD 02</h4>
+          <div class="keyword-cn">三层架构</div>
+          <div class="keyword-en">Three-Tier Architecture</div>
+          <p>把系统分为<strong>表示层（Presentation）</strong>、<strong>业务逻辑层（Business Logic）</strong>、<strong>数据访问层（Data Access）</strong>。注意：三层架构和 MVC 有重叠，但不完全相同。三层更强调物理部署的分层（可以分开部署在不同服务器上），而 MVC 更强调代码内部的职责分离。很多系统同时采用两者。</p>
+        </div>
+        <div class="keyword-card">
+          <h4>KEYWORD 03</h4>
+          <div class="keyword-cn">面向对象</div>
+          <div class="keyword-en">Object-Oriented Programming, OOP</div>
+          <p>把代码组织成"对象"，每个对象封装了数据（属性）和行为（方法）。就像现实世界的物体——一辆"汽车"对象有颜色、品牌（属性），也能启动、刹车（方法）。面向对象的核心思想是<strong>封装、继承、多态</strong>，它让代码更容易复用和维护。</p>
+        </div>
+        <div class="keyword-card">
+          <h4>KEYWORD 04</h4>
+          <div class="keyword-cn">J2EE / .NET</div>
+          <div class="keyword-en">Java 2 Platform Enterprise Edition / .NET Framework</div>
+          <p>两个竞争的企业级开发平台。J2EE（Sun，后改名 Java EE）是 Java 阵营的标准，.NET（Microsoft，2002 年发布）是微软的回应。它们都提供了分层开发所需的基础设施：Web 容器、事务管理、数据库连接池、安全框架等。选择 J2EE 还是 .NET，曾是企业 IT 部门最纠结的战略决策之一。</p>
+        </div>
+        <div class="keyword-card">
+          <h4>KEYWORD 05</h4>
+          <div class="keyword-cn">Servlet / JSP / ASP / PHP</div>
+          <div class="keyword-en">Server-side Web Technologies</div>
+          <p>这些是 1990 年代生成动态网页的技术。Servlet（Java）和 JSP（JavaServer Pages）是 J2EE 的表示层技术；ASP（Active Server Pages，微软）用 VBScript 生成页面；PHP 是开源的轻量级选择。它们共同的使命是：当用户在浏览器里请求一个页面时，<strong>服务器端动态生成 HTML</strong> 返回给浏览器。</p>
+        </div>
+        <div class="keyword-card">
+          <h4>KEYWORD 06</h4>
+          <div class="keyword-cn">UML</div>
+          <div class="keyword-en">Unified Modeling Language</div>
+          <p>统一建模语言，一套图形化的软件设计符号系统。用例图（描述用户需求）、类图（描述代码结构）、时序图（描述交互流程）……UML 让非程序员也能"看懂"软件设计。虽然后来被敏捷开发运动部分否定，但它代表了那个时代对"软件工程可视化"的追求。</p>
+        </div>
+        <div class="keyword-card">
+          <h4>KEYWORD 07</h4>
+          <div class="keyword-cn">B/S 架构</div>
+          <div class="keyword-en">Browser-Server Architecture</div>
+          <p>浏览器-服务器架构。与早期的 C/S（Client-Server，需要安装专用客户端软件）不同，B/S 只需要一个浏览器就能使用系统。对企业来说，这意味着<strong>零部署成本</strong>——用户不需要安装任何软件，打开浏览器就能用。这是互联网普及的关键技术前提。</p>
+        </div>
+        <div class="keyword-card">
+          <h4>KEYWORD 08</h4>
+          <div class="keyword-cn">应用服务器</div>
+          <div class="keyword-en">Application Server</div>
+          <p>专门运行业务逻辑的服务器软件。Web 服务器（如 Apache）只负责接收 HTTP 请求和返回静态文件，应用服务器（如 Tomcat、WebLogic、WebSphere）负责运行动态的业务代码。在三层架构中，应用服务器就是"业务逻辑层"的物理载体。</p>
+        </div>
+      </div>
+
+      <h3>关键词之间的联系</h3>
+      <ul class="connection-list">
+        <li>
+          <span class="conn-keyword">互联网</span>
+          <span class="conn-arrow">→ 催生 →</span>
+          <span class="conn-keyword">浏览器</span>
+          <span class="conn-arrow">→ 需要 →</span>
+          <span class="conn-keyword">B/S 架构</span>
+          <span class="conn-arrow">→ 推动 →</span>
+          <span class="conn-keyword">Web 技术（Servlet/JSP/ASP/PHP）</span>
+        </li>
+        <li>
+          <span class="conn-keyword">面向对象</span>
+          <span class="conn-arrow">→ 催生 →</span>
+          <span class="conn-keyword">MVC 模式</span>
+          <span class="conn-arrow">→ 推广到 →</span>
+          <span class="conn-keyword">三层架构</span>
+          <span class="conn-arrow">→ 需要 →</span>
+          <span class="conn-keyword">应用服务器</span>
+        </li>
+        <li>
+          <span class="conn-keyword">分层架构</span>
+          <span class="conn-arrow">→ 需要被 →</span>
+          <span class="conn-keyword">可视化表达</span>
+          <span class="conn-arrow">→ 催生 →</span>
+          <span class="conn-keyword">UML</span>
+          <span class="conn-arrow">→ 被 →</span>
+          <span class="conn-keyword">需求分析师 / 早期产品经理</span>
+          <span class="conn-arrow">→ 使用</span>
+        </li>
+        <li>
+          <span class="conn-keyword">Java</span>
+          <span class="conn-arrow">→ 演化出 →</span>
+          <span class="conn-keyword">J2EE</span>
+          <span class="conn-arrow">→ 与 →</span>
+          <span class="conn-keyword">.NET</span>
+          <span class="conn-arrow">→ 竞争 →</span>
+          <span class="conn-keyword">企业级开发平台市场</span>
+        </li>
+      </ul>
+
+      <h3>易混淆概念辨析</h3>
+      <div class="compare-box">
+        <div class="compare-title">概念对比</div>
+        <div class="compare-row">
+          <div class="compare-cell">
+            <h5>MVC</h5>
+            <p>一种<strong>设计模式</strong>，关注代码内部的职责分离。Model、View、Controller 是逻辑上的划分，不一定对应物理部署。</p>
+          </div>
+          <div class="compare-cell">
+            <h5>三层架构</h5>
+            <p>一种<strong>部署架构</strong>，关注系统的物理分层。表示层、业务层、数据层可以部署在不同的机器上。</p>
+          </div>
+        </div>
+        <div class="compare-row">
+          <div class="compare-cell">
+            <h5>C/S 架构</h5>
+            <p>客户端-服务器。需要<strong>安装专用客户端软件</strong>，功能强大但部署麻烦。适用于企业内部系统。</p>
+          </div>
+          <div class="compare-cell">
+            <h5>B/S 架构</h5>
+            <p>浏览器-服务器。只需<strong>浏览器即可访问</strong>，部署简单但功能受限（早期）。适用于互联网应用。</p>
+          </div>
+        </div>
+        <div class="compare-row">
+          <div class="compare-cell">
+            <h5>J2EE</h5>
+            <p>Java 的企业级规范，<strong>跨平台</strong>，开源生态丰富。运行在 Tomcat、WebLogic 等容器中。</p>
+          </div>
+          <div class="compare-cell">
+            <h5>.NET</h5>
+            <p>微软的企业级框架，<strong>与 Windows 深度集成</strong>，开发工具（Visual Studio）强大。早期不跨平台。</p>
+          </div>
+        </div>
+        <div class="compare-row">
+          <div class="compare-cell">
+            <h5>面向过程</h5>
+            <p>按步骤依次执行（第一步做什么，第二步做什么）。代码像一份<strong>说明书</strong>。</p>
+          </div>
+          <div class="compare-cell">
+            <h5>面向对象</h5>
+            <p>把代码组织成互相协作的"对象"。代码像一群<strong>互相发送消息的小机器人</strong>。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════
+         06 推荐课程
+         ═══════════════════════════════════════════════ -->
+    <section id="courses">
+      <span class="section-label">06 / 课程</span>
+      <h2>如果穿越回去，该学什么</h2>
+      <p class="lead">
+        以下课程不是为了让你成为 Java 程序员，而是为了让你理解"软件是怎么从一团乱麻变成井然有序的楼房"。作为产品经理，你需要的是系统思维，不是编码技能。
+      </p>
+
+      <div class="courses-list">
+        <div class="course-item">
+          <div class="course-num">01</div>
+          <div class="course-info">
+            <h4>Object-Oriented Programming in Java</h4>
+            <div class="course-meta">Coursera · Duke University · 免费旁听</div>
+            <p>Duke 大学的 Java 面向对象课程。不需要你写很多代码，重点是理解"对象""类""继承""多态"这些概念——这些是分层架构的思维方式基础。作为产品经理，理解这些概念能让你更好地和开发团队对话。</p>
+            <span class="course-tag">Coursera</span>
+          </div>
+        </div>
+
+        <div class="course-item">
+          <div class="course-num">02</div>
+          <div class="course-info">
+            <h4>《设计模式：可复用面向对象软件的基础》</h4>
+            <div class="course-meta">GoF（Gang of Four）· 书籍 · 软件工程经典</div>
+            <p>软件工程领域的"圣经"之一。不用全书读完，重点看前 3 章和 MVC 模式章节。它会告诉你：为什么聪明的工程师会把系统分成 Model、View、Controller——这不是拍脑袋决定的，而是经过深思熟虑的设计哲学。</p>
+            <span class="course-tag">纸质书 / 中文译本</span>
+          </div>
+        </div>
+
+        <div class="course-item">
+          <div class="course-num">03</div>
+          <div class="course-info">
+            <h4>Web Development Full Course</h4>
+            <div class="course-meta">freeCodeCamp · YouTube · 免费</div>
+            <p>freeCodeCamp 的 Web 开发完整课程。从 HTML/CSS/JavaScript 基础到后端 Node.js，让你理解"浏览器是怎么和服务器对话的"。作为产品经理，理解前端和后端的分工是你和技术团队高效协作的前提。</p>
+            <span class="course-tag">YouTube / freeCodeCamp.org</span>
+          </div>
+        </div>
+
+        <div class="course-item">
+          <div class="course-num">04</div>
+          <div class="course-info">
+            <h4>Software Architecture & Design</h4>
+            <div class="course-meta">Udacity · 免费课程</div>
+            <p>Udacity 的软件架构与设计课程。专门讲解分层架构、MVC、设计模式等概念。课程用大量图示和案例说明，非常适合非技术背景的产品经理建立架构思维。</p>
+            <span class="course-tag">Udacity 官网</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════
+         TEASER
+         ═══════════════════════════════════════════════ -->
+    <section class="teaser">
+      <span class="section-label">待续</span>
+      <h2>下一阶段：SOA 架构时代</h2>
+      <p>
+        2000s – 2010s · 当系统开始"服务化"<br>
+        ESB、Web Services、SOAP、REST……分层之后，人们开始思考：能不能把层也拆开？
+      </p>
+      <a href="#" class="teaser-btn" onclick="alert('第三阶段正在制作中'); return false;">敬请期待</a>
+    </section>
+  </main>
+
+  <footer>
+    产品架构的前世今生 · 阶段二：分层架构时代 · 1990s–2000s
+  </footer>
+
+  <script>
+    // Progress bar
+    const progressFill = document.getElementById('progressFill');
+    function updateProgress() {
+      const scrollTop = window.scrollY;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+      progressFill.style.width = progress + '%';
+    }
+    window.addEventListener('scroll', updateProgress, { passive: true });
+    updateProgress();
+
+    // Nav active state
+    const navLinks = document.querySelectorAll('.nav-links a');
+    const sections = document.querySelectorAll('section[id]');
+    function updateActiveNav() {
+      let current = '';
+      sections.forEach(section => {
+        const sectionTop = section.offsetTop - 100;
+        if (window.scrollY >= sectionTop) {
+          current = section.getAttribute('id');
+        }
+      });
+      navLinks.forEach(link => {
+        link.classList.toggle('active', link.dataset.section === current);
+      });
+    }
+    window.addEventListener('scroll', updateActiveNav, { passive: true });
+    updateActiveNav();
+  </script>
+</body>
+</html>

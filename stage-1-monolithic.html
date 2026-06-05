@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>阶段一 · 单体架构时代 — 产品架构的前世今生</title>
+  <style>
+    /* ═══════════════════════════════════════════════
+       Editorial — Monocle / FT magazine 方向
+       Palette & Typography
+       ═══════════════════════════════════════════════ */
+    :root {
+      --bg:      oklch(98% 0.004 95);
+      --surface: oklch(100% 0.002 95);
+      --fg:      oklch(20% 0.018 70);
+      --muted:   oklch(48% 0.012 70);
+      --border:  oklch(90% 0.006 95);
+      --accent:  oklch(52% 0.10 28);
+
+      --font-display: 'Iowan Old Style', 'Charter', Georgia, 'Noto Serif SC', serif;
+      --font-body:    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', system-ui, sans-serif;
+      --font-mono:    'SF Mono', 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+
+      --max-width: 720px;
+      --gutter: 24px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      scroll-behavior: smooth;
+      scroll-padding-top: 80px;
+    }
+
+    body {
+      font-family: var(--font-body);
+      color: var(--fg);
+      background: var(--bg);
+      line-height: 1.75;
+      font-size: 17px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Navigation ── */
+    .nav-bar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      background: rgba(252, 252, 250, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 var(--gutter);
+    }
+    .nav-inner {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+    }
+    .nav-brand {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .nav-brand strong {
+      color: var(--fg);
+      font-weight: 600;
+    }
+    .nav-links {
+      display: flex;
+      gap: 20px;
+      list-style: none;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .nav-links::-webkit-scrollbar {
+      display: none;
+    }
+    .nav-links a {
+      font-size: 13px;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s;
+      position: relative;
+    }
+    .nav-links a:hover,
+    .nav-links a.active {
+      color: var(--fg);
+    }
+    .nav-links a.active::after {
+      content: '';
+      position: absolute;
+      bottom: -4px; left: 0; right: 0;
+      height: 1.5px;
+      background: var(--accent);
+    }
+    .nav-links a.nav-home {
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    /* ── Progress bar ── */
+    .progress-track {
+      position: fixed;
+      top: 56px; left: 0; right: 0;
+      height: 2px;
+      background: var(--border);
+      z-index: 100;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      width: 0%;
+      transition: width 0.1s linear;
+    }
+
+    /* ── Main container ── */
+    main {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 var(--gutter);
+    }
+
+    /* ── Section spacing ── */
+    section {
+      padding: 80px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    section:last-of-type {
+      border-bottom: none;
+    }
+
+    /* ── Typography ── */
+    h1, h2, h3 {
+      font-family: var(--font-display);
+      font-weight: 600;
+      line-height: 1.2;
+      color: var(--fg);
+    }
+    h1 {
+      font-size: clamp(42px, 6vw, 64px);
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+    h2 {
+      font-size: clamp(28px, 4vw, 40px);
+      margin-bottom: 32px;
+      letter-spacing: -0.01em;
+    }
+    h3 {
+      font-size: 22px;
+      margin-bottom: 16px;
+      margin-top: 40px;
+    }
+    .section-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 12px;
+      display: block;
+    }
+    .lead {
+      font-size: 20px;
+      line-height: 1.65;
+      color: var(--muted);
+      margin-bottom: 40px;
+      font-family: var(--font-display);
+    }
+    p {
+      margin-bottom: 20px;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Hero ── */
+    .hero {
+      padding-top: 140px;
+      padding-bottom: 60px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .stage-badge {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      padding: 6px 16px;
+      margin-bottom: 32px;
+    }
+    .hero h1 {
+      margin-bottom: 12px;
+    }
+    .hero-subtitle {
+      font-family: var(--font-display);
+      font-size: 20px;
+      color: var(--muted);
+      margin-bottom: 48px;
+    }
+    .hero-meta {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+    }
+
+    /* ── Timeline strip ── */
+    .timeline-strip {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 48px;
+      flex-wrap: wrap;
+    }
+    .timeline-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--border);
+    }
+    .timeline-dot.active {
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(180, 80, 40, 0.15);
+    }
+    .timeline-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 8px;
+      text-align: center;
+      width: 100%;
+    }
+
+    /* ── Pull quote ── */
+    .pull-quote {
+      border-left: 3px solid var(--accent);
+      padding-left: 28px;
+      margin: 48px 0;
+      font-family: var(--font-display);
+      font-size: 22px;
+      line-height: 1.5;
+      color: var(--fg);
+    }
+    .pull-quote cite {
+      display: block;
+      margin-top: 12px;
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-style: normal;
+      color: var(--muted);
+    }
+
+    /* ── Story block ── */
+    .story-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 32px;
+      margin: 40px 0;
+    }
+    .story-block h4 {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+
+    /* ── Timeline events ── */
+    .events-list {
+      list-style: none;
+      margin: 32px 0;
+    }
+    .events-list li {
+      display: flex;
+      gap: 20px;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .events-list li:last-child {
+      border-bottom: none;
+    }
+    .event-year {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--accent);
+      min-width: 56px;
+      font-weight: 600;
+    }
+    .event-text {
+      font-size: 15px;
+      color: var(--fg);
+    }
+
+    /* ── Personas ── */
+    .personas-grid {
+      display: grid;
+      gap: 24px;
+      margin: 40px 0;
+    }
+    .persona-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 32px;
+    }
+    .persona-card h4 {
+      font-family: var(--font-display);
+      font-size: 20px;
+      margin-bottom: 4px;
+    }
+    .persona-role {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+    .persona-scene {
+      font-size: 15px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+    .persona-scene strong {
+      color: var(--fg);
+    }
+
+    /* ── Product cards ── */
+    .products-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      margin: 32px 0;
+    }
+    .product-card {
+      border: 1px solid var(--border);
+      padding: 24px;
+      transition: border-color 0.2s;
+    }
+    .product-card:hover {
+      border-color: var(--accent);
+    }
+    .product-card h4 {
+      font-family: var(--font-display);
+      font-size: 18px;
+      margin-bottom: 6px;
+    }
+    .product-card .product-year {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+    .product-card p {
+      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 0;
+    }
+
+    /* ── Insight card ── */
+    .insight-grid {
+      display: grid;
+      gap: 20px;
+      margin: 32px 0;
+    }
+    .insight-card {
+      border-left: 3px solid var(--accent);
+      padding-left: 24px;
+    }
+    .insight-card h4 {
+      font-family: var(--font-display);
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+    .insight-card p {
+      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 0;
+    }
+
+    /* ── Keywords ── */
+    .keyword-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      margin: 32px 0;
+    }
+    .keyword-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 24px;
+    }
+    .keyword-card h4 {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    .keyword-card .keyword-cn {
+      font-family: var(--font-display);
+      font-size: 18px;
+      margin-bottom: 4px;
+    }
+    .keyword-card .keyword-en {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .keyword-card p {
+      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 0;
+    }
+
+    /* ── Compare ── */
+    .compare-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 32px;
+      margin: 32px 0;
+    }
+    .compare-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 20px;
+    }
+    .compare-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .compare-row:last-child {
+      border-bottom: none;
+    }
+    .compare-cell h5 {
+      font-family: var(--font-display);
+      font-size: 16px;
+      margin-bottom: 6px;
+    }
+    .compare-cell p {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 0;
+    }
+    .compare-vs {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* ── Connection map ── */
+    .connection-list {
+      margin: 32px 0;
+      padding-left: 0;
+      list-style: none;
+    }
+    .connection-list li {
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 15px;
+    }
+    .connection-list li:last-child {
+      border-bottom: none;
+    }
+    .connection-list .conn-keyword {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--accent);
+    }
+    .connection-list .conn-arrow {
+      color: var(--muted);
+      margin: 0 8px;
+    }
+
+    /* ── Courses ── */
+    .courses-list {
+      display: grid;
+      gap: 16px;
+      margin: 32px 0;
+    }
+    .course-item {
+      border: 1px solid var(--border);
+      padding: 24px;
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+    }
+    .course-num {
+      font-family: var(--font-mono);
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--accent);
+      line-height: 1;
+      min-width: 36px;
+    }
+    .course-info h4 {
+      font-family: var(--font-display);
+      font-size: 18px;
+      margin-bottom: 4px;
+    }
+    .course-meta {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    .course-info p {
+      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 0;
+    }
+    .course-tag {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 2px 8px;
+      margin-top: 10px;
+    }
+
+    /* ── Next stage teaser ── */
+    .teaser {
+      text-align: center;
+      padding: 80px 0;
+    }
+    .teaser h2 {
+      margin-bottom: 16px;
+    }
+    .teaser p {
+      color: var(--muted);
+      margin-bottom: 32px;
+    }
+    .teaser-btn {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      padding: 10px 28px;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .teaser-btn:hover {
+      background: var(--accent);
+      color: var(--surface);
+      text-decoration: none;
+    }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 48px var(--gutter);
+      border-top: 1px solid var(--border);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* ── Responsive ── */
+    @media (min-width: 640px) {
+      .personas-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .products-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .keyword-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .insight-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    @media (min-width: 860px) {
+      .personas-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+      .products-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Progress -->
+  <div class="progress-track">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="nav-bar">
+    <div class="nav-inner">
+      <div class="nav-brand"><strong>架构演进</strong> / 阶段一</div>
+      <ul class="nav-links">
+        <li><a href="index.html" class="nav-home">← 首页</a></li>
+        <li><a href="#why" data-section="why">起源</a></li>
+        <li><a href="#people" data-section="people">人物</a></li>
+        <li><a href="#products" data-section="products">产品</a></li>
+        <li><a href="#mind" data-section="mind">认知</a></li>
+        <li><a href="#keywords" data-section="keywords">关键词</a></li>
+        <li><a href="#courses" data-section="courses">课程</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <!-- ═══════════════════════════════════════════════
+         HERO
+         ═══════════════════════════════════════════════ -->
+    <header class="hero">
+      <div class="stage-badge">阶段一 / 共八阶段</div>
+      <h1>单体架构时代</h1>
+      <p class="hero-subtitle">1960s – 1990s · 当所有代码还住在同一间房里</p>
+      <p class="hero-meta">产品架构演进之旅 · 面向 AI 产品经理的叙事课件</p>
+
+      <div class="timeline-strip">
+        <div class="timeline-dot active"></div>
+        <div class="timeline-dot"></div>
+        <div class="timeline-dot"></div>
+        <div class="timeline-dot"></div>
+        <div class="timeline-dot"></div>
+        <div class="timeline-dot"></div>
+        <div class="timeline-label">单体 → 分层 → SOA → 微服务 → 云原生 → Prompt → RAG+Agent → Multi-Agent</div>
+      </div>
+    </header>
+
+    <!-- ═══════════════════════════════════════════════
+         01 为什么会诞生
+         ═══════════════════════════════════════════════ -->
+    <section id="why">
+      <span class="section-label">01 / 起源</span>
+      <h2>一切是怎么开始的</h2>
+      <p class="lead">
+        在计算机出现的最初几十年里，没有人谈论"架构"。工程师们只是把代码堆在一起，就像把所有家具塞进一个房间——不是因为这样最好，而是因为当时根本没有别的选择。
+      </p>
+
+      <p>
+        要理解单体架构为什么诞生，我们必须回到一个更根本的问题：<strong>为什么人们需要计算机？</strong> 答案并不浪漫——是为了算账。二战后，银行和航空公司每天需要处理海量交易：存款、取款、航班预订、库存盘点。这些工作以前由成百上千的会计和文员用笔和纸完成，错误率高、速度慢、成本高得惊人。
+      </p>
+
+      <div class="pull-quote">
+        "我们不是在做软件，我们是在做一个能自动算账的机器。"
+        <cite>—— 1960 年代某 IBM 工程师的口头禅</cite>
+      </div>
+
+      <p>
+        <strong>关键转折点发生在 1964 年。</strong> IBM 推出了 System/360 系列大型机——这是计算机历史上第一个"兼容系列"，意味着企业可以买不同型号，但它们运行相同的软件。这大大降低了企业使用计算机的门槛。银行、航空公司、保险公司蜂拥而上。但有一个问题：这些机器贵得离谱——一台大型机的价格相当于今天数百万美元，而且体积大到需要专门建一个恒温恒湿的机房。
+      </p>
+
+      <div class="story-block">
+        <h4>当时的现实约束</h4>
+        <p>
+          1960–1990 年代的工程师面临三重枷锁：<strong>硬件极其昂贵</strong>（一台机器一栋楼的钱）、<strong>网络几乎不存在</strong>（ARPANET 1969 年才诞生，且仅供学术研究）、<strong>编程语言极其原始</strong>（COBOL 和 Fortran 是主流，没有"模块化"的概念）。在这样的环境下，"把所有东西放在一起"不是选择，而是必然。
+        </p>
+      </div>
+
+      <p>
+        那么，<strong>科学认知发生了怎样的变化</strong>？在早期（1940s–1950s），人们认为"程序 = 计算任务"——写一段代码，输入数据，得到结果，完事。但随着企业开始使用计算机处理日常业务，人们意识到程序需要<strong>持续运行</strong>、<strong>保存数据</strong>、<strong>支持多个用户同时使用</strong>。这个认知转变催生了"系统"的概念——程序不再是用完即弃的工具，而是长期运行的业务基础设施。
+      </p>
+
+      <p>
+        为什么是<strong>单体</strong>而不是别的方向？因为分布式在当时是不可想象的。没有网络，机器之间无法通信；没有标准化协议，不同机器甚至无法交换数据。"把所有代码放在一个包里"是当时唯一能让系统跑起来的方式。这不是最优解，而是<strong>唯一可行解</strong>。
+      </p>
+
+      <h3>关键事件时间线</h3>
+      <ul class="events-list">
+        <li>
+          <span class="event-year">1951</span>
+          <span class="event-text">UNIVAC I 成为第一台商用计算机，美国人口普查局用它处理人口数据——软件架构的概念尚未诞生</span>
+        </li>
+        <li>
+          <span class="event-year">1964</span>
+          <span class="event-text">IBM System/360 发布，企业级计算正式起步。所有程序共享同一台机器、同一个数据库。</span>
+        </li>
+        <li>
+          <span class="event-year">1969</span>
+          <span class="event-text">ARPANET 诞生，但仅限学术研究。企业界的网络互联还要再等 20 年。</span>
+        </li>
+        <li>
+          <span class="event-year">1970</span>
+          <span class="event-text">Edgar Codd 提出关系型数据库理论——数据终于有了"结构化"的存放方式，但仍然集中在一台机器上。</span>
+        </li>
+        <li>
+          <span class="event-year">1979</span>
+          <span class="event-text">Oracle 发布首个商业 SQL 数据库，企业数据管理进入新阶段——但依然是单体。</span>
+        </li>
+        <li>
+          <span class="event-year">1981</span>
+          <span class="event-text">IBM PC 发布，个人计算机时代开启，但企业核心系统仍运行在大型机上。</span>
+        </li>
+      </ul>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════
+         02 那个时代的人
+         ═══════════════════════════════════════════════ -->
+    <section id="people">
+      <span class="section-label">02 / 人物</span>
+      <h2>那个时代的人，在干什么</h2>
+      <p class="lead">
+        想象一下：没有 Slack，没有 Jira，没有 Figma，甚至没有"产品经理"这个职位。那个时代的人是如何工作的？
+      </p>
+
+      <div class="personas-grid">
+        <div class="persona-card">
+          <h4>老张 · 系统架构师</h4>
+          <div class="persona-role">1960s – 1980s / 大型机时代</div>
+          <div class="persona-scene">
+            每天早上，老张穿上白大褂走进恒温机房——温度严格控制在 20°C，湿度 50%。他的"编程"是把 COBOL 代码写在纸上，然后交给穿孔卡片操作员，操作员把代码转成一叠卡片。老张把卡片塞进读卡机，等上<strong>几小时甚至一整夜</strong>，才能看到运行结果。如果出错了，整个过程重来一次。他的日常不是"写代码"，而是<strong>等代码</strong>。最让他焦虑的不是 bug，而是"今晚的批处理能不能在第二天早上 8 点前跑完"——因为银行开门前，所有账目必须对平。
+          </div>
+        </div>
+
+        <div class="persona-card">
+          <h4>小李 · 业务系统分析师</h4>
+          <div class="persona-role">1970s – 1990s / 最接近"产品经理"的岗位</div>
+          <div class="persona-scene">
+            小李的工位上堆满了<strong>纸质流程图</strong>和<strong>需求规格说明书</strong>。没有原型工具，他用铅笔在方格纸上画界面草图，用流程图符号（菱形代表判断，矩形代表处理）描述业务逻辑。他要做的不是"用户体验设计"，而是<strong>把银行柜员的日常工作翻译成程序员能懂的规则</strong>。例如："当客户存款超过 5000 美元时，系统必须记录交易来源"——这样的规则要写成几十页的技术文档。小李最痛苦的是：写完文档交给开发团队后，要等<strong>三个月</strong>才能看到第一个可运行的版本。
+          </div>
+        </div>
+
+        <div class="persona-card">
+          <h4>王姐 · 银行柜员</h4>
+          <div class="persona-role">1980s – 1990s / 终端用户</div>
+          <div class="persona-scene">
+            王姐面前的屏幕是<strong>绿色的</strong>，纯文本，没有鼠标。她每天的工作是记住几十条指令：输入 <code>ACCT 12345</code> 查询账户，输入 <code>DEP 500</code> 存入 500 元。屏幕上看不到"余额"两个字，只有一行数字。如果系统宕机了，整个银行网点停摆——因为所有数据都在市中心机房的那台大型机上，网点终端只是"远程显示器"。王姐不知道什么是"架构"，但她知道：<strong>早上 9 点前系统必须好使，否则几百个客户会在大厅里排队骂街。</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="pull-quote">
+        "那时候没有'上线'这个说法。系统安装好了，就不会轻易改动——改一次的风险比建一座桥还高。"
+        <cite>—— 一位 1980 年代银行 IT 主管的回忆</cite>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════
+         03 涌现的产品
+         ═══════════════════════════════════════════════ -->
+    <section id="products">
+      <span class="section-label">03 / 产品</span>
+      <h2>那个时代诞生了什么</h2>
+      <p class="lead">
+        单体架构时代并非荒芜——恰恰相反，它奠定了现代数字世界的基石。以下是那个时代最具影响力的产品。
+      </p>
+
+      <div class="products-grid">
+        <div class="product-card">
+          <h4>IBM System/360</h4>
+          <div class="product-year">1964 · 大型机</div>
+          <p>第一个兼容系列商用计算机，让不同规模的企业都能用上同一套软件生态。相当于"计算机界的乐高"——你可以买小号的，也可以买大号的，但它们的零件能互相配合。</p>
+        </div>
+        <div class="product-card">
+          <h4>SABRE 订票系统</h4>
+          <div class="product-year">1960 · 航空预订</div>
+          <p>美国航空与 IBM 合作开发的全球首个实时预订系统。它让旅行社能在几秒钟内查到航班座位，彻底改变了航空业。这个系统今天仍在运行，经过无数次改造。</p>
+        </div>
+        <div class="product-card">
+          <h4>Oracle Database</h4>
+          <div class="product-year">1979 · 数据库</div>
+          <p>首个商业化的关系型数据库。它让数据不再是程序里的附属品，而是独立的、可结构化查询的资产。这是单体架构中"数据层"概念的起点。</p>
+        </div>
+        <div class="product-card">
+          <h4>SAP R/2</h4>
+          <div class="product-year">1979 · 企业资源计划</div>
+          <p>德国 SAP 公司的早期 ERP 系统，运行在 IBM 大型机上。它将财务、库存、生产、销售全部塞进一个系统——这是单体架构的极致体现：一个系统管一切。</p>
+        </div>
+        <div class="product-card">
+          <h4>dBase</h4>
+          <div class="product-year">1980 · 桌面数据库</div>
+          <p>个人计算机上最早的流行数据库软件。虽然它不是企业级大型机系统，但它让普通企业也能在 PC 上管理数据——C/S 架构的雏形开始浮现。</p>
+        </div>
+        <div class="product-card">
+          <h4>VisiCalc</h4>
+          <div class="product-year">1979 · 电子表格</div>
+          <p>世界上第一个电子表格软件，运行在 Apple II 上。它让非技术人员也能"编程"——用单元格公式处理数据。这是"软件民主化"的第一步。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════
+         04 心理学认知
+         ═══════════════════════════════════════════════ -->
+    <section id="mind">
+      <span class="section-label">04 / 认知</span>
+      <h2>那个时代的人，心里在想什么</h2>
+      <p class="lead">
+        理解一个时代的架构，必须先理解那个时代的人是怎么想的。心理学上，这叫"心智模型"。
+      </p>
+
+      <div class="insight-grid">
+        <div class="insight-card">
+          <h4>认知一：计算机 = 超级计算器</h4>
+          <p>大多数人把计算机看作一个"自动化工具"——它替代了人工记账、人工查表、人工计算。没有人把它看作一个"平台"或"生态"。这种认知直接导致了单体架构的必然性：既然只是一个工具，那把功能塞在一起就好了。</p>
+        </div>
+        <div class="insight-card">
+          <h4>认知二：集中 = 安全</h4>
+          <p>在那个时代，"所有数据在一个地方"被认为是优势而非风险。数据集中意味着容易备份、容易审计、容易控制。分布式在当时听起来像"把金库拆成碎片藏在不同的地方"——令人不安。</p>
+        </div>
+        <div class="insight-card">
+          <h4>认知三：改动 = 危险</h4>
+          <p>修改代码需要重新编译整个系统，重新部署，重新测试——周期以周甚至月计算。因此，"能不动就不动"成为行业信条。这种恐惧心理直接抑制了架构拆分的尝试：拆分意味着更多的改动点，更多的风险。</p>
+        </div>
+        <div class="insight-card">
+          <h4>认知四：软件 < 硬件</h4>
+          <p>当时硬件成本占总成本的 70% 以上，软件只是"让硬件跑起来的配套品"。没有人认为软件本身有独立的价值。这种认知导致软件设计被硬件约束绑架——怎么省钱怎么来，而不是怎么好用怎么来。</p>
+        </div>
+      </div>
+
+      <div class="pull-quote">
+        "我们今天觉得'所有东西放在一起'很荒谬，但在当时，'分开'才是荒谬的——因为没有网络，分开就等于失联。"
+        <cite>—— 软件史学家 Martin Campbell-Kelly</cite>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════
+         05 关键词
+         ═══════════════════════════════════════════════ -->
+    <section id="keywords">
+      <span class="section-label">05 / 关键词</span>
+      <h2>关键词词典</h2>
+      <p class="lead">
+        每个时代都有它的语言。要真正理解单体架构时代，你必须先学会那个时代的关键词——不只是定义，还有它们之间的关联。
+      </p>
+
+      <div class="keyword-grid">
+        <div class="keyword-card">
+          <h4>KEYWORD 01</h4>
+          <div class="keyword-cn">单体架构</div>
+          <div class="keyword-en">Monolithic Architecture</div>
+          <p>所有功能模块（界面、业务逻辑、数据访问）被写进同一个代码库，部署时作为一个整体运行。想象一家餐厅，厨师、服务员、收银员全是一个人——简单，但没法扩展。</p>
+        </div>
+        <div class="keyword-card">
+          <h4>KEYWORD 02</h4>
+          <div class="keyword-cn">大型机</div>
+          <div class="keyword-en">Mainframe</div>
+          <p>专为企业级计算设计的巨型计算机，价格昂贵、体积庞大、需要专门机房。特点是<strong>高可靠性</strong>和<strong>高并发处理能力</strong>。今天的 ATM 交易、航班预订背后仍有大型机在支撑。</p>
+        </div>
+        <div class="keyword-card">
+          <h4>KEYWORD 03</h4>
+          <div class="keyword-cn">批处理</div>
+          <div class="keyword-en">Batch Processing</div>
+          <p>不实时处理请求，而是把一堆任务攒起来，等到夜里统一跑一遍。就像快递：不是每收到一个包裹就送一次，而是攒满一车再出发。优点是效率高，缺点是用户得等到第二天才能看到结果。</p>
+        </div>
+        <div class="keyword-card">
+          <h4>KEYWORD 04</h4>
+          <div class="keyword-cn">穿孔卡片</div>
+          <div class="keyword-en">Punch Card</div>
+          <p>早期程序员把代码写在纸上，操作员用打孔机在卡片上打孔（不同孔位代表不同指令），然后把卡片塞进读卡机。一张卡片 80 列，最多写一行代码。调试 bug 意味着重新打一堆卡片。</p>
+        </div>
+        <div class="keyword-card">
+          <h4>KEYWORD 05</h4>
+          <div class="keyword-cn">终端</div>
+          <div class="keyword-en">Terminal</div>
+          <p>一台只负责显示和输入的设备，本身没有计算能力。所有计算都在远处的大型机上完成。相当于今天的"远程桌面"——你看到的是画面，但大脑（CPU）在别处。</p>
+        </div>
+        <div class="keyword-card">
+          <h4>KEYWORD 06</h4>
+          <div class="keyword-cn">COBOL</div>
+          <div class="keyword-en">Common Business-Oriented Language</div>
+          <p>专门为商业数据处理设计的编程语言，语法接近英语（<code>ADD A TO B</code>）。直到今天，全球仍有数十亿行 COBOL 代码在运行——主要是银行核心系统，因为"能跑就不要动"。</p>
+        </div>
+        <div class="keyword-card">
+          <h4>KEYWORD 07</h4>
+          <div class="keyword-cn">关系型数据库</div>
+          <div class="keyword-en">Relational Database</div>
+          <p>把数据组织成"表"的结构，表与表之间通过"关系"（外键）连接。就像 Excel 的多张工作表，但更加严格和强大。Oracle、MySQL、PostgreSQL 都属于这一类。</p>
+        </div>
+        <div class="keyword-card">
+          <h4>KEYWORD 08</h4>
+          <div class="keyword-cn">C/S 架构</div>
+          <div class="keyword-en">Client-Server</div>
+          <p>把应用拆成两部分：客户端（Client，负责显示界面）和服务器（Server，负责处理数据）。注意：C/S 不是单体架构的对立面——早期的 C/S 应用中，服务器端仍然是一个单体。</p>
+        </div>
+      </div>
+
+      <h3>关键词之间的联系</h3>
+      <ul class="connection-list">
+        <li>
+          <span class="conn-keyword">大型机</span>
+          <span class="conn-arrow">→ 需要 →</span>
+          <span class="conn-keyword">终端</span>
+          <span class="conn-arrow">→ 输入 →</span>
+          <span class="conn-keyword">穿孔卡片 / 键盘</span>
+          <span class="conn-arrow">→ 运行 →</span>
+          <span class="conn-keyword">批处理</span>
+        </li>
+        <li>
+          <span class="conn-keyword">单体架构</span>
+          <span class="conn-arrow">→ 运行在 →</span>
+          <span class="conn-keyword">大型机</span>
+          <span class="conn-arrow">→ 用 →</span>
+          <span class="conn-keyword">COBOL</span>
+          <span class="conn-arrow">→ 操作 →</span>
+          <span class="conn-keyword">关系型数据库</span>
+        </li>
+        <li>
+          <span class="conn-keyword">C/S 架构</span>
+          <span class="conn-arrow">→ 服务器端仍然是 →</span>
+          <span class="conn-keyword">单体架构</span>
+          <span class="conn-arrow">→ 只是把 →</span>
+          <span class="conn-keyword">界面层</span>
+          <span class="conn-arrow">→ 拆到了客户端 →</span>
+        </li>
+        <li>
+          <span class="conn-keyword">批处理</span>
+          <span class="conn-arrow">→ 因为 →</span>
+          <span class="conn-keyword">大型机</span>
+          <span class="conn-arrow">太贵，不能闲置，所以夜里也要跑任务 →</span>
+        </li>
+      </ul>
+
+      <h3>易混淆概念辨析</h3>
+      <div class="compare-box">
+        <div class="compare-title">概念对比</div>
+        <div class="compare-row">
+          <div class="compare-cell">
+            <h5>单体架构</h5>
+            <p>所有代码在一个包里。关注的是<strong>代码怎么组织</strong>。</p>
+          </div>
+          <div class="compare-cell">
+            <h5>分层架构</h5>
+            <p>代码逻辑上分成了表示层、业务层、数据层，但<strong>物理上还是部署在一起</strong>。是单体内部的进一步组织。</p>
+          </div>
+        </div>
+        <div class="compare-row">
+          <div class="compare-cell">
+            <h5>大型机</h5>
+            <p>一种<strong>专用硬件</strong>，为企业级计算设计。昂贵、可靠、专有生态。</p>
+          </div>
+          <div class="compare-cell">
+            <h5>服务器</h5>
+            <p>一种<strong>通用硬件</strong>，可以运行各种软件。便宜、标准化、开放生态。</p>
+          </div>
+        </div>
+        <div class="compare-row">
+          <div class="compare-cell">
+            <h5>C/S 架构</h5>
+            <p>一种<strong>连接方式</strong>：客户端请求，服务器响应。关注的是谁和谁通信。</p>
+          </div>
+          <div class="compare-cell">
+            <h5>单体架构</h5>
+            <p>一种<strong>代码组织方式</strong>：所有功能在一个包里。C/S 架构的服务器端完全可以是单体。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════
+         06 推荐课程
+         ═══════════════════════════════════════════════ -->
+    <section id="courses">
+      <span class="section-label">06 / 课程</span>
+      <h2>如果穿越回去，该学什么</h2>
+      <p class="lead">
+        以下课程不是为了让你成为 COBOL 程序员，而是为了让你理解"计算机是怎么从算盘变成今天的样子"。作为产品经理，你需要的是历史视野，不是编码技能。
+      </p>
+
+      <div class="courses-list">
+        <div class="course-item">
+          <div class="course-num">01</div>
+          <div class="course-info">
+            <h4>CS50: Introduction to Computer Science</h4>
+            <div class="course-meta">Harvard University · David J. Malan · 免费</div>
+            <p>哈佛最著名的计算机导论课。从二进制到 C 语言，从算法到 Web 开发，用极度通俗易懂的方式告诉你"计算机到底在干什么"。作为产品经理，你只需要看前 6 讲（到 Web 开发之前）。</p>
+            <span class="course-tag">YouTube / edX</span>
+          </div>
+        </div>
+
+        <div class="course-item">
+          <div class="course-num">02</div>
+          <div class="course-info">
+            <h4>Code: The Hidden Language of Computer Hardware and Software</h4>
+            <div class="course-meta">Charles Petzold · 书籍 · 通俗科普</div>
+            <p>从零开始讲计算机的诞生：从摩尔斯电码到继电器，从逻辑门到 CPU，从汇编到高级语言。不需要任何技术背景，就像读一本历史小说。读完你会真正理解"为什么最早的计算机是单体"。</p>
+            <span class="course-tag">纸质书 / Kindle</span>
+          </div>
+        </div>
+
+        <div class="course-item">
+          <div class="course-num">03</div>
+          <div class="course-info">
+            <h4>计算机科学速成课（Crash Course Computer Science）</h4>
+            <div class="course-meta">Carrie Anne Philbin · YouTube · 40集 × 10分钟</div>
+            <p>用最短的篇幅讲完计算机科学全貌：硬件、软件、网络、AI……每集 10 分钟，像追剧一样学计算机。强烈建议产品经理通刷一遍——建立完整的知识地图，以后和技术团队对话不再心虚。</p>
+            <span class="course-tag">YouTube / B站字幕版</span>
+          </div>
+        </div>
+
+        <div class="course-item">
+          <div class="course-num">04</div>
+          <div class="course-info">
+            <h4>Building Modern Business Applications</h4>
+            <div class="course-meta">Microsoft Learn · 免费 · 面向业务人员</div>
+            <p>微软官方课程，教你用低代码平台（Power Platform）搭建业务应用。虽然不直接讲架构历史，但它让你体会到：今天的"单体思维"仍然存在——很多业务系统依然是一个大包。</p>
+            <span class="course-tag">Microsoft Learn 官网</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════
+         TEASER
+         ═══════════════════════════════════════════════ -->
+    <section class="teaser">
+      <span class="section-label">待续</span>
+      <h2>下一阶段：分层架构时代</h2>
+      <p>
+        1990s – 2000s · 当代码开始分层，但身体还在一起<br>
+        MVC、三层架构、面向对象……单体开始有了"内部结构"。
+      </p>
+      <a href="#" class="teaser-btn" onclick="alert('第二阶段正在制作中'); return false;">敬请期待</a>
+    </section>
+  </main>
+
+  <footer>
+    产品架构的前世今生 · 阶段一：单体架构时代 · 1960s–1990s
+  </footer>
+
+  <script>
+    // Progress bar
+    const progressFill = document.getElementById('progressFill');
+    function updateProgress() {
+      const scrollTop = window.scrollY;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+      progressFill.style.width = progress + '%';
+    }
+    window.addEventListener('scroll', updateProgress, { passive: true });
+    updateProgress();
+
+    // Nav active state
+    const navLinks = document.querySelectorAll('.nav-links a');
+    const sections = document.querySelectorAll('section[id]');
+    function updateActiveNav() {
+      let current = '';
+      sections.forEach(section => {
+        const sectionTop = section.offsetTop - 100;
+        if (window.scrollY >= sectionTop) {
+          current = section.getAttribute('id');
+        }
+      });
+      navLinks.forEach(link => {
+        link.classList.toggle('active', link.dataset.section === current);
+      });
+    }
+    window.addEventListener('scroll', updateActiveNav, { passive: true });
+    updateActiveNav();
+  </script>
+</body>
+</html>

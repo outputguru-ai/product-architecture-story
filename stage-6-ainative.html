@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>阶段六 · AI Native 架构时代 — 产品架构的前世今生</title>
+  <style>
+    /* ═══════════════════════════════════════════════
+       Editorial — Monocle / FT magazine 方向
+       Palette & Typography
+       ═══════════════════════════════════════════════ */
+    :root {
+      --bg:      oklch(98% 0.004 95);
+      --surface: oklch(100% 0.002 95);
+      --fg:      oklch(20% 0.018 70);
+      --muted:   oklch(48% 0.012 70);
+      --border:  oklch(90% 0.006 95);
+      --accent:  oklch(52% 0.10 28);
+
+      --font-display: 'Iowan Old Style', 'Charter', Georgia, 'Noto Serif SC', serif;
+      --font-body:    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', system-ui, sans-serif;
+      --font-mono:    'SF Mono', 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+
+      --max-width: 720px;
+      --gutter: 24px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      scroll-behavior: smooth;
+      scroll-padding-top: 80px;
+    }
+
+    body {
+      font-family: var(--font-body);
+      color: var(--fg);
+      background: var(--bg);
+      line-height: 1.75;
+      font-size: 17px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Navigation ── */
+    .nav-bar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      background: rgba(252, 252, 250, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 var(--gutter);
+    }
+    .nav-inner {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+    }
+    .nav-brand {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .nav-brand strong {
+      color: var(--fg);
+      font-weight: 600;
+    }
+    .nav-links {
+      display: flex;
+      gap: 20px;
+      list-style: none;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .nav-links::-webkit-scrollbar { display: none; }
+    .nav-links a {
+      font-size: 13px;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s;
+      position: relative;
+      white-space: nowrap;
+    }
+    .nav-links a:hover,
+    .nav-links a.active { color: var(--fg); }
+    .nav-links a.active::after {
+      content: '';
+      position: absolute;
+      bottom: -4px; left: 0; right: 0;
+      height: 1.5px;
+      background: var(--accent);
+    }
+    .nav-links a.nav-home {
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    /* ── Progress bar ── */
+    .progress-track {
+      position: fixed;
+      top: 56px; left: 0; right: 0;
+      height: 2px;
+      background: var(--border);
+      z-index: 100;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      width: 0%;
+      transition: width 0.1s linear;
+    }
+
+    /* ── Main container ── */
+    main {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 var(--gutter);
+    }
+
+    /* ── Section spacing ── */
+    section {
+      padding: 80px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    section:last-of-type { border-bottom: none; }
+
+    /* ── Typography ── */
+    h1, h2, h3 {
+      font-family: var(--font-display);
+      font-weight: 600;
+      line-height: 1.2;
+      color: var(--fg);
+    }
+    h1 {
+      font-size: clamp(42px, 6vw, 64px);
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+    h2 {
+      font-size: clamp(28px, 4vw, 40px);
+      margin-bottom: 32px;
+      letter-spacing: -0.01em;
+    }
+    h3 {
+      font-size: 22px;
+      margin-bottom: 16px;
+      margin-top: 40px;
+    }
+    .section-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 12px;
+      display: block;
+    }
+    .lead {
+      font-size: 20px;
+      line-height: 1.65;
+      color: var(--muted);
+      margin-bottom: 40px;
+      font-family: var(--font-display);
+    }
+    p { margin-bottom: 20px; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Hero ── */
+    .hero {
+      padding-top: 140px;
+      padding-bottom: 60px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .stage-badge {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      padding: 6px 16px;
+      margin-bottom: 32px;
+    }
+    .hero h1 { margin-bottom: 12px; }
+    .hero-subtitle {
+      font-family: var(--font-display);
+      font-size: 20px;
+      color: var(--muted);
+      margin-bottom: 48px;
+    }
+    .hero-meta {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+    }
+
+    /* ── Timeline strip ── */
+    .timeline-strip {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 48px;
+      flex-wrap: wrap;
+    }
+    .timeline-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--border);
+    }
+    .timeline-dot.active {
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(180, 80, 40, 0.15);
+    }
+    .timeline-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 8px;
+      text-align: center;
+      width: 100%;
+    }
+
+    /* ── Pull quote ── */
+    .pull-quote {
+      border-left: 3px solid var(--accent);
+      padding-left: 28px;
+      margin: 48px 0;
+      font-family: var(--font-display);
+      font-size: 22px;
+      line-height: 1.5;
+      color: var(--fg);
+    }
+    .pull-quote cite {
+      display: block;
+      margin-top: 12px;
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-style: normal;
+      color: var(--muted);
+    }
+
+    /* ── Story block ── */
+    .story-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 32px;
+      margin: 40px 0;
+    }
+    .story-block h4 {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+
+    /* ── Timeline events ── */
+    .events-list {
+      list-style: none;
+      margin: 32px 0;
+    }
+    .events-list li {
+      display: flex;
+      gap: 20px;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .events-list li:last-child { border-bottom: none; }
+    .event-year {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--accent);
+      min-width: 56px;
+      font-weight: 600;
+    }
+    .event-text {
+      font-size: 15px;
+      color: var(--fg);
+    }
+
+    /* ── Personas ── */
+    .personas-grid {
+      display: grid;
+      gap: 24px;
+      margin: 40px 0;
+    }
+    .persona-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 32px;
+    }
+    .persona-card h4 {
+      font-family: var(--font-display);
+      font-size: 20px;
+      margin-bottom: 4px;
+    }
+    .persona-role {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+    .persona-scene {
+      font-size: 15px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+    .persona-scene strong { color: var(--fg); }
+
+    /* ── Product cards ── */
+    .products-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      margin: 32px 0;
+    }
+    .product-card {
+      border: 1px solid var(--border);
+      padding: 24px;
+      transition: border-color 0.2s;
+    }
+    .product-card:hover { border-color: var(--accent); }
+    .product-card h4 {
+      font-family: var(--font-display);
+      font-size: 18px;
+      margin-bottom: 6px;
+    }
+    .product-card .product-year {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+    .product-card p {
+      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 0;
+    }
+
+    /* ── Insight card ── */
+    .insight-grid {
+      display: grid;
+      gap: 20px;
+      margin: 32px 0;
+    }
+    .insight-card {
+      border-left: 3px solid var(--accent);
+      padding-left: 24px;
+    }
+    .insight-card h4 {
+      font-family: var(--font-display);
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+    .insight-card p {
+      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 0;
+    }
+
+    /* ── Keywords ── */
+    .keyword-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      margin: 32px 0;
+    }
+    .keyword-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 24px;
+    }
+    .keyword-card h4 {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    .keyword-card .keyword-cn {
+      font-family: var(--font-display);
+      font-size: 18px;
+      margin-bottom: 4px;
+    }
+    .keyword-card .keyword-en {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .keyword-card p {
+      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 0;
+    }
+
+    /* ── Compare ── */
+    .compare-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 32px;
+      margin: 32px 0;
+    }
+    .compare-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 20px;
+    }
+    .compare-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .compare-row:last-child { border-bottom: none; }
+    .compare-cell h5 {
+      font-family: var(--font-display);
+      font-size: 16px;
+      margin-bottom: 6px;
+    }
+    .compare-cell p {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 0;
+    }
+    .compare-vs {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* ── Connection map ── */
+    .connection-list {
+      margin: 32px 0;
+      padding-left: 0;
+      list-style: none;
+    }
+    .connection-list li {
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 15px;
+    }
+    .connection-list li:last-child { border-bottom: none; }
+    .connection-list .conn-keyword {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--accent);
+    }
+    .connection-list .conn-arrow {
+      color: var(--muted);
+      margin: 0 8px;
+    }
+
+    /* ── Courses ── */
+    .courses-list {
+      display: grid;
+      gap: 16px;
+      margin: 32px 0;
+    }
+    .course-item {
+      border: 1px solid var(--border);
+      padding: 24px;
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+    }
+    .course-num {
+      font-family: var(--font-mono);
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--accent);
+      line-height: 1;
+      min-width: 36px;
+    }
+    .course-info h4 {
+      font-family: var(--font-display);
+      font-size: 18px;
+      margin-bottom: 4px;
+    }
+    .course-meta {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    .course-info p {
+      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 0;
+    }
+    .course-tag {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 2px 8px;
+      margin-top: 10px;
+    }
+
+    /* ── Finale ── */
+    .finale {
+      text-align: center;
+      padding: 100px 0 60px;
+    }
+    .finale h2 {
+      font-size: clamp(32px, 5vw, 48px);
+      margin-bottom: 20px;
+    }
+    .finale p {
+      color: var(--muted);
+      max-width: 560px;
+      margin: 0 auto 40px;
+    }
+    .finale-journey {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin: 40px 0;
+    }
+    .finale-stage {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+      padding: 8px 14px;
+      border: 1px solid var(--border);
+    }
+    .finale-stage.current {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+    .finale-nav {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 32px;
+      flex-wrap: wrap;
+    }
+    .finale-nav a {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 8px 16px;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .finale-nav a:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 48px var(--gutter);
+      border-top: 1px solid var(--border);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* ── Responsive ── */
+    @media (min-width: 640px) {
+      .personas-grid { grid-template-columns: repeat(2, 1fr); }
+      .products-grid { grid-template-columns: repeat(2, 1fr); }
+      .keyword-grid  { grid-template-columns: repeat(2, 1fr); }
+      .insight-grid  { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (min-width: 860px) {
+      .personas-grid { grid-template-columns: repeat(3, 1fr); }
+      .products-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Progress -->
+  <div class="progress-track">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="nav-bar">
+    <div class="nav-inner">
+      <div class="nav-brand"><strong>架构演进</strong> / 阶段六</div>
+      <ul class="nav-links">
+        <li><a href="index.html" class="nav-home">← 首页</a></li>
+        <li><a href="#why" data-section="why">起源</a></li>
+        <li><a href="#people" data-section="people">人物</a></li>
+        <li><a href="#products" data-section="products">产品</a></li>
+        <li><a href="#mind" data-section="mind">认知</a></li>
+        <li><a href="#keywords" data-section="keywords">关键词</a></li>
+        <li><a href="#courses" data-section="courses">课程</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <!-- ═══════════════════════════════════════════════
+         HERO
+         ═══════════════════════════════════════════════ -->
+    <header class="hero">
+      <div class="stage-badge">阶段六 / 最终章</div>
+      <h1>AI Native 架构时代</h1>
+      <p class="hero-subtitle">2022 – 至今 · 当大模型成为新的基础设施——Agent 编排、LLM 驱动、认知自动化</p>
+      <p class="hero-meta">产品架构演进之旅 · 面向 AI 产品经理的叙事课件</p>
+
+      <div class="timeline-strip">
+        <div class="timeline-dot"></div>
+        <div class="timeline-dot"></div>
+        <div class="timeline-dot"></div>
+        <div class="timeline-dot"></div>
+        <div class="timeline-dot"></div>
+        <div class="timeline-dot active"></div>
+        <div class="timeline-label">单体 → 分层 → SOA → 微服务 → 云原生 → AI Native</div>
+      </div>
+    </header>
+
+    <!-- ═══════════════════════════════════════════════
+         01 为什么会诞生
+         ═══════════════════════════════════════════════ -->
+    <section id="why">
+      <span class="section-label">01 / 起源</span>
+      <h2>从"管理代码"到"管理认知"</h2>
+      <p class="lead">
+        云原生时代让工程师不再为基础设施操心。但它留下了一个更根本的问题：<strong>软件只能执行人类写死的指令，它不能理解需求、不能推理、不能创造。</strong> AI Native 的核心命题是：让软件具备认知能力，让它不仅能"运行"，还能"理解""推理""生成"。
+      </p>
+
+      <p>
+        要理解 AI Native 为什么诞生，我们必须先回到<strong>传统软件的"天花板"</strong>。在 AI 出现之前，所有软件都是"确定性的"——你写一个 if/else，它就按你的逻辑走；你漏掉一个分支，它就报错或崩溃。软件的"智能"完全取决于人类程序员的想象力和代码质量。
+      </p>
+
+      <p>
+        但现实世界是模糊的。用户说"帮我订一张去北京的票"，这句话背后有无数种理解方式：哪一天？哪个机场？什么舱位？预算多少？以前的做法是程序员穷尽所有可能性，写几千个分支来"猜"用户的意图——但这注定是残缺的。真正的突破来自一个简单但深刻的认知转变：<strong>与其让程序员穷举所有规则，不如让机器自己从海量数据中学习规则。</strong>
+      </p>
+
+      <div class="pull-quote">
+        "我们用了六十年教计算机按规则思考。现在我们终于教会了它们按经验思考。"
+        <cite>—— 一位 AI 研究员对 Transformer 时代的评述</cite>
+      </div>
+
+      <p>
+        <strong>关键转折点不是单一事件，而是五股力量的汇聚：</strong>
+      </p>
+
+      <div class="story-block">
+        <h4>五股推动力</h4>
+        <p>
+          <strong>① Transformer 架构的突破（2017–2020）：</strong>Google 在 2017 年发布的 Transformer 论文《Attention Is All You Need》改变了整个 AI 领域的游戏规则。它的核心洞察是：用"注意力机制"替代传统的循环神经网络（RNN），让模型能同时看到整段文本的上下文，而不是一个字一个字地"回忆"。这个架构的扩展性惊人——当你给它更多数据、更多参数、更多计算力时，它展现出了前所未有的"涌现能力"（Emergent Abilities）：突然能写诗、能编程、能翻译、能推理。<strong>这就是大语言模型（LLM）的技术根基。</strong>
+        </p>
+        <p style="margin-top:16px">
+          <strong>② GPT-3 与"涌现能力"的震撼（2020）：</strong>OpenAI 发布的 GPT-3 有 1750 亿参数，是前一代 GPT-2 的 100 倍。它第一次让人们意识到：当模型足够大时，它会"突然学会"一些你从未专门教过的事情——比如从几个例子中学会一种新语言、用零样本的方式完成从未见过的任务。这被称为<strong>"少样本学习"（Few-shot Learning）</strong>。它标志着 AI 从"窄领域专家"（只会下棋、只会翻译）变成了"通才"（什么都能聊）。
+        </p>
+        <p style="margin-top:16px">
+          <strong>③ ChatGPT 的破圈时刻（2022）：</strong>2022 年 11 月，OpenAI 发布了 ChatGPT——一个能聊天、能写代码、能写诗、能回答任何问题（虽然有时会"一本正经地胡说八道"）的对话机器人。它在两个月内获得了 1 亿月活用户，成为历史上增长最快的消费级产品。<strong>ChatGPT 不是一个技术突破，而是一个产品突破</strong>——它证明了大模型的"对话界面"能让普通人直接感受到 AI 的力量。
+        </p>
+        <p style="margin-top:16px">
+          <strong>④ 云原生基础设施的成熟（2020–2023）：</strong>云原生时代铺好了 AI 时代的"路"。大模型训练和推理需要海量 GPU 集群，而 Kubernetes + 云厂商的 GPU 实例 + 弹性扩容让这成为可能。AWS、Azure、Google Cloud 都在 2020–2022 年间大幅扩充了 GPU 资源。同时，Hugging Face、Replicate 等平台让模型的发布和调用变得像发布一个 npm 包一样简单。<strong>没有云原生，就没有 AI Native 的基础设施。</strong>
+        </p>
+        <p style="margin-top:16px">
+          <strong>⑤ 开源生态的爆发（2022–2024）：</strong>Meta 开源了 LLaMA（2023），Databricks 开源了 Dolly，Stability AI 开源了 Stable Diffusion……开源大模型让中小企业和个人开发者也能使用 AI 能力，而不必依赖 OpenAI 的 API。LangChain（2022）、LlamaIndex（2022）等框架降低了开发 AI 应用的门槛。<strong>开源生态的繁荣让 AI Native 从"大厂特权"变成了"全民运动"。</strong>
+        </p>
+      </div>
+
+      <p>
+        那么，<strong>科学认知发生了怎样的变化</strong>？最核心的认知迁移是：<strong>从"规则驱动"到"数据驱动"</strong>。传统软件是人类程序员把知识编码成规则；AI Native 软件是机器从数据中学习知识。这意味着：软件的"智能上限"不再取决于程序员的想象力，而取决于数据的数量和质量。
+      </p>
+
+      <p>
+        另一个深刻的认知转变是<strong>"不确定性"的接纳</strong>。传统软件追求 100% 的确定性——输入 A 必须输出 B。但大模型的本质是概率性的——它给出的是"最可能的答案"，而非"绝对正确的答案"。这迫使产品设计师重新思考用户体验：<strong>如果 AI 可能出错，我们如何设计"容错界面"？如何让用户能验证、修正、覆盖 AI 的输出？</strong> 这是 AI Native 产品设计中最核心的课题。
+      </p>
+
+      <p>
+        为什么是<strong>AI Native</strong>而不是别的方向？因为云原生解决了"如何高效运行软件"的问题，但无法解决"如何让软件更聪明"的问题。AI 提供了一种全新的"软件构建材料"——大语言模型——它让软件具备了"理解语言""生成内容""推理决策"的能力。当这些能力被嵌入到产品的每一个触点中时，产品就从"工具"变成了"伙伴"。
+      </p>
+
+      <h3>关键事件时间线</h3>
+      <ul class="events-list">
+        <li>
+          <span class="event-year">2017</span>
+          <span class="event-text">Google 发布 Transformer 论文《Attention Is All You Need》，奠定大语言模型的技术基础。</span>
+        </li>
+        <li>
+          <span class="event-year">2018</span>
+          <span class="event-text">Google 发布 BERT，首次展示了预训练模型在理解任务上的突破性表现。</span>
+        </li>
+        <li>
+          <span class="event-year">2020</span>
+          <span class="event-text">OpenAI 发布 GPT-3（175B 参数），展示了惊人的"少样本学习"能力，引发行业震动。</span>
+        </li>
+        <li>
+          <span class="event-year">2021</span>
+          <span class="event-text">GitHub 推出 Copilot，AI 辅助编程首次进入开发者日常工作流。</span>
+        </li>
+        <li>
+          <span class="event-year">2022</span>
+          <span class="event-text">Stable Diffusion 开源，AI 图像生成进入大众视野。11 月 ChatGPT 发布，两个月获 1 亿用户。</span>
+        </li>
+        <li>
+          <span class="event-year">2023</span>
+          <span class="event-text">GPT-4 发布，多模态能力（文本+图像）惊艳世界。Meta 开源 LLaMA，开源大模型生态爆发。LangChain 成为 Agent 开发主流框架。</span>
+        </li>
+        <li>
+          <span class="event-year">2023</span>
+          <span class="event-text">AutoGPT 引爆 Agent 概念——让 AI 自主设定目标、分解任务、调用工具完成复杂工作。</span>
+        </li>
+        <li>
+          <span class="event-year">2024</span>
+          <span class="event-text">Claude 3、Gemini 1.5、GPT-4o 等模型在长上下文（100万+ tokens）、多模态、推理能力上竞争。AI Agent 平台（如 CrewAI、Dify）大量涌现。</span>
+        </li>
+        <li>
+          <span class="event-year">2024</span>
+          <span class="event-text">AI 编程工具爆发：Cursor（AI IDE）、Windsurf、Devin（AI 软件工程师）。AI Native 应用从"玩具"走向"生产力工具"。</span>
+        </li>
+        <li>
+          <span class="event-year">2025</span>
+          <span class="event-text">AI Agent 成为产品架构的核心概念。多 Agent 协作系统（Multi-Agent System）开始应用于企业场景。 reasoning models（如 o1/o3）让 AI 具备了"慢思考"能力。</span>
+        </li>
+      </ul>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════
+         02 那个时代的人
+         ═══════════════════════════════════════════════ -->
+    <section id="people">
+      <span class="section-label">02 / 人物</span>
+      <h2>那个时代的人，在干什么</h2>
+      <p class="lead">
+        2022 年之后，科技公司的办公室里出现了一个全新的角色：AI 产品经理。他们不写代码，但每天和提示词打交道；他们不设计数据库，但设计"AI 如何理解用户"。与此同时，普通用户的生活也在被 AI 悄然改变。
+      </p>
+
+      <div class="personas-grid">
+        <div class="persona-card">
+          <h4>小张 · AI 产品经理 / Prompt Engineer</h4>
+          <div class="persona-role">2023 – 至今 / AI 创业公司 / 大厂 AI 实验室</div>
+          <div class="persona-scene">
+            小张的工位上有两块屏幕：左边是 <strong>Cursor</strong>（AI 驱动的代码编辑器），右边是 <strong>Dify</strong>（AI Agent 编排平台）。他每天的工作是：写提示词（Prompt）——不是随便写，而是经过几十次 A/B 测试找到"最优提示模板"；设计 Agent 工作流——"先让 AI 理解用户意图，再调用搜索 API 获取信息，然后用 RAG 检索内部文档，最后生成回答并标注来源"。他不再画传统的产品原型图，而是画<strong>"Agent 编排图"</strong>——一个流程图，节点是 AI 模型、工具调用、知识库检索、人工审核。他最骄傲的时刻是：用户说"这个 AI 比我还懂我的业务"。他最头痛的是：AI 偶尔会"一本正经地胡说八道"（幻觉），他必须设计"事实核查"和"置信度提示"来降低风险。
+          </div>
+        </div>
+
+        <div class="persona-card">
+          <h4>小李 · AI 平台工程师 / MLOps</h4>
+          <div class="persona-role">2022 – 至今 / 云计算公司 / AI 基础设施团队</div>
+          <div class="persona-scene">
+            小李的日常工作是<strong>让大模型跑得快、跑得稳、跑得便宜</strong>。他管理着公司的 GPU 集群——H100 显卡的调度、显存分配、推理请求的排队策略。他正在优化一个 LLM 的推理服务：通过"量化"（把 16 位精度降到 8 位）减少 50% 的显存占用；通过"批处理"把多个请求合并处理提升吞吐量；通过"KV Cache"复用已计算的注意力结果减少重复计算。他还要处理"成本噩梦"：GPT-4 级别的模型一次推理要消耗几美分的计算资源，当用户量达到百万级时，一天的推理账单可能是几十万美元。他设计了<strong>"模型路由"</strong>策略：简单问题用便宜的小模型，复杂问题才调用昂贵的大模型。他最骄傲的时刻是：用一套优化方案把推理成本降低了 70%，同时用户体验没有明显下降。
+          </div>
+        </div>
+
+        <div class="persona-card">
+          <h4>小王 · 普通用户 / AI 时代的"数字原住民"</h4>
+          <div class="persona-role">2023 – 至今 / 各行各业</div>
+          <div class="persona-scene">
+            小王是一名市场专员，他的工作流已经被 AI 彻底改变。早上，他用 <strong>ChatGPT</strong> 生成营销文案的初稿，然后人工修改润色；上午，他用 <strong>Midjourney</strong> 生成产品宣传图，代替了以往找设计师外包的流程；中午，他用 <strong>Perplexity</strong>（AI 搜索引擎）做竞品调研——不是看搜索结果列表，而是直接看 AI 总结的综合报告；下午，他用 <strong>NotebookLM</strong> 把一份 200 页的行业报告变成一段 10 分钟的播客音频，通勤时听。晚上，他用 <strong>Cursor</strong> 写了一个 Python 脚本来自动整理 Excel 数据——他完全不会编程，但 AI 帮他生成了所有代码。<strong>他不再"使用软件"，而是"与 AI 协作"。</strong> 他也经历过 AI 的"翻车"：有一次他把一份机密文件传给 ChatGPT 做总结，后来发现聊天记录可能被用于模型训练——从那以后，他只用企业内部部署的私有模型处理敏感信息。
+          </div>
+        </div>
+      </div>
+
+      <div class="pull-quote">
+        "2023 年最颠覆我认知的瞬间，是看到一位 60 岁的会计阿姨用 ChatGPT 写了一封完美的英文商务邮件——她从未学过编程，但她现在能'编程'了。"
+        <cite>—— 一位科技观察者的记录</cite>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════
+         03 涌现的产品
+         ═══════════════════════════════════════════════ -->
+    <section id="products">
+      <span class="section-label">03 / 产品</span>
+      <h2>那个时代诞生了什么</h2>
+      <p class="lead">
+        AI Native 时代的产品大致分为三类：底层大模型（提供"认知能力"）、AI 应用（直接面向用户）、Agent 框架（让开发者构建 AI 系统）。
+      </p>
+
+      <div class="products-grid">
+        <div class="product-card">
+          <h4>ChatGPT / Claude / Gemini / 文心一言</h4>
+          <div class="product-year">2022 / 2023 / 2023 / 2023 · 大语言模型对话产品</div>
+          <p>AI 时代的"浏览器"——最普适的 AI 交互界面。用户用自然语言与模型对话，获取信息、生成内容、辅助思考。ChatGPT 开创了"对话即服务"的产品范式，Claude 以长上下文（100万 tokens）见长，Gemini 强调多模态（文本+图像+视频），文心一言是中国市场的代表性产品。</p>
+        </div>
+        <div class="product-card">
+          <h4>GitHub Copilot / Cursor / Windsurf</h4>
+          <div class="product-year">2021 / 2023 / 2024 · AI 编程助手</div>
+          <p>将大模型能力深度集成到开发工具中。Copilot 在 IDE 中实时预测下一行代码；Cursor 是基于 VS Code 的 AI IDE，支持"自然语言修改代码"——你描述需求，AI 直接改代码并生成 diff；Windsurf 强调 AI 与开发者的协作编辑。它们标志着<strong>"AI 编程"从辅助走向共创</strong>。</p>
+        </div>
+        <div class="product-card">
+          <h4>Midjourney / Stable Diffusion / DALL-E</h4>
+          <div class="product-year">2022 / 2022 / 2021 · AI 图像生成</div>
+          <p>让文字描述直接变成图像。Midjourney 以艺术品质感著称，是设计师的"灵感生成器"；Stable Diffusion 开源，让任何人都能在自己的电脑上运行；DALL-E（OpenAI）是最早的文本生成图像模型之一。它们颠覆了"图像创作"的行业——从"用手画"变成了"用嘴说"。</p>
+        </div>
+        <div class="product-card">
+          <h4>LangChain / LlamaIndex / Dify</h4>
+          <div class="product-year">2022 / 2022 / 2023 · AI 应用开发框架</div>
+          <p>降低 AI 应用开发门槛的框架。LangChain 提供"链式"工作流编排——把多个模型调用、API 调用、知识库检索串联起来；LlamaIndex 专注于<strong>数据连接</strong>——让大模型能访问企业内部数据（RAG 的核心）；Dify 是开源的 LLM 应用开发平台，提供可视化工作流编排、提示词管理、知识库构建等全套工具。</p>
+        </div>
+        <div class="product-card">
+          <h4>Hugging Face</h4>
+          <div class="product-year">2016 · AI 模型开源社区</div>
+          <p>AI 领域的"GitHub"。托管了数十万个开源模型、数据集和工具。开发者可以一键下载预训练模型，微调后部署到自己的应用中。Hugging Face 的 Transformers 库成为事实标准，让任何开发者都能用几行代码调用 GPT、BERT、LLaMA 等模型。</p>
+        </div>
+        <div class="product-card">
+          <h4>Perplexity / NotebookLM</h4>
+          <div class="product-year">2022 / 2023 · AI 搜索与知识管理</div>
+          <p>AI 时代的"搜索引擎"和"知识伴侣"。Perplexity 用 AI 实时搜索网络并生成带引用来源的综合回答，替代了传统的"链接列表"搜索体验。NotebookLM 让用户上传文档后，AI 自动生成摘要、问答、播客音频——把"阅读"变成了"对话"。</p>
+        </div>
+        <div class="product-card">
+          <h4>CrewAI / AutoGPT / Devin</h4>
+          <div class="product-year">2023 / 2023 / 2024 · AI Agent</div>
+          <p>让 AI 自主完成复杂任务的 Agent 框架。AutoGPT 最早展示了"AI 自主设定目标并执行"的可能性；CrewAI 让多个 AI Agent 协作完成任务（如"研究员 Agent"搜集信息 + "写作者 Agent"生成报告）；Devin 是"AI 软件工程师"——能自主规划、编码、调试、部署完整项目。它们代表了 AI 从"回答问题"到"自主行动"的跃迁。</p>
+        </div>
+        <div class="product-card">
+          <h4>OpenAI API / Azure OpenAI / 火山引擎</h4>
+          <div class="product-year">2020 / 2023 / 2023 · AI 基础设施服务</div>
+          <p>让 AI 能力"像水电一样"可被调用的云 API。开发者不需要自己训练模型，只需调用 API 发送一段文字，就能获得模型的回复。OpenAI API 开创了"模型即服务"（MaaS）的商业模式；Azure OpenAI 提供企业级的安全合规保障；火山引擎（字节跳动）提供高性价比的中文大模型服务。</p>
+        </div>
+        <div class="product-card">
+          <h4>Runway / Sora / 可灵</h4>
+          <div class="product-year">2018 / 2024 / 2024 · AI 视频生成</div>
+          <p>让文字或图片变成视频。Runway 是最早的 AI 视频编辑工具；Sora（OpenAI）能以高保真度生成长达一分钟的视频，震惊业界；可灵（快手）是中国市场的代表性产品。它们标志着 AI 从"生成静态内容"走向"生成动态世界"。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════
+         04 心理学认知
+         ═══════════════════════════════════════════════ -->
+    <section id="mind">
+      <span class="section-label">04 / 认知</span>
+      <h2>那个时代的人，心里在想什么</h2>
+      <p class="lead">
+        AI Native 时代不仅改变了产品的形态，更深刻地重塑了人们对"软件""智能""人机关系"的认知。这四个心理转变，标志着人类与技术的协作方式进入了一个全新阶段。
+      </p>
+
+      <div class="insight-grid">
+        <div class="insight-card">
+          <h4>认知一：提示 = 编程（Prompt Engineering）</h4>
+          <p>人们开始相信，<strong>写提示词（Prompt）是一种新的编程方式</strong>——不是用 Python 或 Java，而是用自然语言"指挥"AI。一个精心设计的提示词可以让模型从"胡说八道"变成"专业顾问"。这引发了激烈的争论：提示工程是"真正的技能"还是"临时的工作"？目前的主流观点是：它既是当下的核心能力，也是未来会被抽象掉的中间层。类比一下，早期的网页开发需要手写 HTML，现在的设计师用 Figma 拖拽就能生成代码——提示工程也会经历类似的"从 artisan 到 industrial"的演进。<strong>对产品经理而言，理解"如何用结构化语言与 AI 沟通"是新的核心能力。</strong></p>
+        </div>
+        <div class="insight-card">
+          <h4>认知二：智能 = 基础设施（AI as a Service）</h4>
+          <p>在云原生时代，"计算"变成了基础设施（AWS EC2）；在 AI Native 时代，<strong>"智能"正在变成基础设施</strong>。OpenAI API、Azure OpenAI、火山引擎——它们把大模型的能力包装成标准化的 HTTP 接口，开发者像调用数据库一样调用 AI。这意味着：<strong>每个产品都将是 AI 产品</strong>，正如每个产品都曾是互联网产品。产品经理的认知需要升级：不再问"要不要加 AI 功能"，而是问"AI 如何重构这个产品的核心体验"。</p>
+        </div>
+        <div class="insight-card">
+          <h4>认知三：不确定性 = 特性（概率性输出的价值）</h4>
+          <p>传统软件追求 100% 的确定性，但 AI 的本质是概率性的。人们开始意识到：<strong>不确定性不是 bug，而是 feature。</strong> AI 的"创造性"恰恰来自于它的"不完美"——它能想到人类想不到的比喻、写出意想不到的代码、提出反直觉的建议。产品设计的关键不再是"消除不确定性"，而是<strong>"管理不确定性"</strong>：让用户知道 AI 的回答可能是错的；提供"重新生成"按钮；标注信息来源让用户可以验证；在关键决策点加入人工审核。这要求产品经理重新思考用户体验的"信任模型"。</p>
+        </div>
+        <div class="insight-card">
+          <h4>认知四：人机协作 = 新常态（Agent + Human）</h4>
+          <p>人们不再把 AI 看作"替代人类的工具"，而是看作<strong>"与人类协作的伙伴"</strong>。最佳实践不是"全自动"，而是"人机协作"（Human-in-the-loop）：AI 负责初稿、搜索、分析、提案；人类负责审核、决策、创意方向、价值观把关。这种协作模式重新定义了工作流：不是"人做 A → 人做 B → 人做 C"，而是"AI 做 A → 人审核 A → AI 做 B → 人修改 B"。<strong>产品设计的核心问题变成了：在什么环节让人介入？如何让 AI 的建议"可被理解、可被修改、可被拒绝"？</strong></p>
+        </div>
+      </div>
+
+      <div class="pull-quote">
+        "AI Native 不是把 AI 作为一个功能加进产品里，而是让 AI 成为产品的神经系统——它感知用户意图、生成个性化响应、持续学习优化。没有 AI，产品就无法存在。"
+        <cite>—— 一位 AI Native 产品设计师的定义</cite>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════
+         05 关键词
+         ═══════════════════════════════════════════════ -->
+    <section id="keywords">
+      <span class="section-label">05 / 关键词</span>
+      <h2>关键词词典</h2>
+      <p class="lead">
+        AI Native 时代创造了一套全新的概念体系。这些词不仅是技术术语，更是理解这个时代思维方式的关键。
+      </p>
+
+      <div class="keyword-grid">
+        <div class="keyword-card">
+          <h4>KEYWORD 01</h4>
+          <div class="keyword-cn">大语言模型</div>
+          <div class="keyword-en">LLM (Large Language Model)</div>
+          <p>基于 Transformer 架构、在海量文本上训练出来的巨型神经网络。核心能力：理解自然语言、生成连贯文本、推理、翻译、总结。<strong>通俗理解：一个读过互联网上所有文字的"超级读者"</strong>，你问它任何问题，它都能基于"读过的书"给出一个合理的回答。代表：GPT-4、Claude、LLaMA、文心一言。</p>
+        </div>
+        <div class="keyword-card">
+          <h4>KEYWORD 02</h4>
+          <div class="keyword-cn">提示工程</div>
+          <div class="keyword-en">Prompt Engineering</div>
+          <p>设计和优化与 LLM 交互的"指令"的艺术。好的提示词能让模型输出质量提升 10 倍。核心技巧：角色设定（"你是一位资深产品经理"）、示例引导（Few-shot）、思维链（Chain-of-Thought）、结构化输出（JSON 格式）。<strong>通俗理解：不是"问 AI 问题"，而是"教 AI 如何回答"。</strong></p>
+        </div>
+        <div class="keyword-card">
+          <h4>KEYWORD 03</h4>
+          <div class="keyword-cn">检索增强生成</div>
+          <div class="keyword-en">RAG (Retrieval-Augmented Generation)</div>
+          <p>解决 LLM"知识过时"和"幻觉"问题的关键技术。流程：用户提问 → 从知识库检索相关文档 → 把检索结果+用户问题一起喂给 LLM → LLM 基于检索到的真实信息生成回答。<strong>通俗理解：让 AI 先"查资料"再"答题"，而不是凭记忆瞎说。</strong> 它是企业级 AI 应用的核心架构模式。</p>
+        </div>
+        <div class="keyword-card">
+          <h4>KEYWORD 04</h4>
+          <div class="keyword-cn">智能体 / 多智能体</div>
+          <div class="keyword-en">AI Agent / Multi-Agent</div>
+          <p><strong>Agent</strong>：能自主感知环境、制定计划、调用工具、执行任务的 AI 系统。不是"一问一答"，而是"你给一个目标，它自己想办法完成"。<strong>Multi-Agent</strong>：多个 Agent 协作完成任务——比如"研究员 Agent"搜集信息 + "写作者 Agent"生成报告 + "审核员 Agent"检查错误。<strong>通俗理解：Agent = AI 员工，Multi-Agent = AI 团队。</strong></p>
+        </div>
+        <div class="keyword-card">
+          <h4>KEYWORD 05</h4>
+          <div class="keyword-cn">微调 / 预训练</div>
+          <div class="keyword-en">Fine-tuning / Pre-training</div>
+          <p><strong>预训练</strong>：在海量通用数据上训练模型，让它学会语言的基本规律（需要海量算力和数据，通常只有大厂能做）。<strong>微调</strong>：在预训练模型的基础上，用少量特定领域数据继续训练，让模型适应特定任务（如医疗问答、法律文书生成）。<strong>通俗理解：预训练 = 读完所有书，微调 = 专攻某个专业。</strong></p>
+        </div>
+        <div class="keyword-card">
+          <h4>KEYWORD 06</h4>
+          <div class="keyword-cn">Token / 上下文窗口</div>
+          <div class="keyword-en">Token / Context Window</div>
+          <p><strong>Token</strong>：LLM 处理文本的最小单位。一个英文单词 ≈ 1.3 个 token，一个中文字 ≈ 1.5–2 个 token。GPT-4 按 token 计费，输入和输出分别计价。<strong>上下文窗口</strong>：模型能"记住"的文本长度。GPT-4 早期是 8K tokens（约 6000 字），Claude 3 支持 200K tokens（约 15 万字），Gemini 1.5 支持 1M tokens（约 75 万字）。<strong>窗口越大，AI 能"读"的材料越多。</strong></p>
+        </div>
+        <div class="keyword-card">
+          <h4>KEYWORD 07</h4>
+          <div class="keyword-cn">嵌入向量 / 向量数据库</div>
+          <div class="keyword-en">Embedding / Vector Database</div>
+          <p><strong>嵌入向量</strong>：把文本、图像等内容转化为高维空间中的数字向量（一串数字）。语义相近的内容在向量空间中距离更近——比如"苹果"和"水果"的向量距离很近，和"汽车"很远。<strong>向量数据库</strong>：专门存储和检索向量的数据库，是 RAG 系统的核心组件。<strong>通俗理解：嵌入 = 给每个概念一个"坐标"，向量数据库 = 按"距离"查找相似概念的引擎。</strong></p>
+        </div>
+        <div class="keyword-card">
+          <h4>KEYWORD 08</h4>
+          <div class="keyword-cn">函数调用 / 工具使用</div>
+          <div class="keyword-en">Function Calling / Tool Use</div>
+          <p>让 LLM 不仅能"说话"，还能"行动"的技术。模型根据用户请求判断需要调用哪个外部工具（如搜索 API、计算器、数据库查询），生成调用参数，执行后把结果返回给用户。<strong>通俗理解：给 AI 装上"手"和"脚"</strong>——它不再只是聊天，还能查天气、订机票、写代码、发邮件。这是 Agent 能力的核心技术基础。</p>
+        </div>
+      </div>
+
+      <h3>关键词之间的联系</h3>
+      <ul class="connection-list">
+        <li>
+          <span class="conn-keyword">LLM 预训练</span>
+          <span class="conn-arrow">→ 得到 →</span>
+          <span class="conn-keyword">通用模型能力</span>
+          <span class="conn-arrow">→ 通过 →</span>
+          <span class="conn-keyword">微调（Fine-tuning）</span>
+          <span class="conn-arrow">→ 适配 →</span>
+          <span class="conn-keyword">垂直领域</span>
+        </li>
+        <li>
+          <span class="conn-keyword">用户提问</span>
+          <span class="conn-arrow">→ 触发 →</span>
+          <span class="conn-keyword">RAG（检索增强）</span>
+          <span class="conn-arrow">→ 依赖 →</span>
+          <span class="conn-keyword">向量数据库（Embedding 检索）</span>
+          <span class="conn-arrow">→ 提供 →</span>
+          <span class="conn-keyword">真实信息源</span>
+        </li>
+        <li>
+          <span class="conn-keyword">提示工程（Prompt）</span>
+          <span class="conn-arrow">→ 指导 →</span>
+          <span class="conn-keyword">LLM 输出格式</span>
+          <span class="conn-arrow">→ 配合 →</span>
+          <span class="conn-keyword">函数调用（Function Calling）</span>
+          <span class="conn-arrow">→ 实现 →</span>
+          <span class="conn-keyword">Agent 自主行动</span>
+        </li>
+        <li>
+          <span class="conn-keyword">上下文窗口（Context Window）</span>
+          <span class="conn-arrow">→ 决定 →</span>
+          <span class="conn-keyword">RAG 能检索多少内容</span>
+          <span class="conn-arrow">→ 影响 →</span>
+          <span class="conn-keyword">回答质量和深度</span>
+        </li>
+        <li>
+          <span class="conn-keyword">Multi-Agent 协作</span>
+          <span class="conn-arrow">→ 每个 Agent 使用 →</span>
+          <span class="conn-keyword">函数调用 + RAG</span>
+          <span class="conn-arrow">→ 通过 →</span>
+          <span class="conn-keyword">编排框架（LangChain / CrewAI）</span>
+          <span class="conn-arrow">→ 完成 →</span>
+          <span class="conn-keyword">复杂任务自动化</span>
+        </li>
+        <li>
+          <span class="conn-keyword">云原生基础设施</span>
+          <span class="conn-arrow">→ 提供 →</span>
+          <span class="conn-keyword">GPU 集群 + 弹性扩容</span>
+          <span class="conn-arrow">→ 支撑 →</span>
+          <span class="conn-keyword">LLM 训练与推理</span>
+          <span class="conn-arrow">→ 使能 →</span>
+          <span class="conn-keyword">AI Native 应用爆发</span>
+        </li>
+      </ul>
+
+      <h3>易混淆概念辨析</h3>
+      <div class="compare-box">
+        <div class="compare-title">概念对比</div>
+        <div class="compare-row">
+          <div class="compare-cell">
+            <h5>Prompt Engineering（提示工程）</h5>
+            <p>通过精心设计输入文本来引导模型输出。<strong>不改变模型本身</strong>，只改变"问题的方式"。成本低、见效快，但受限于模型原始能力。比喻：你不是在教鹦鹉新词，而是在学会问对问题。</p>
+          </div>
+          <div class="compare-cell">
+            <h5>Fine-tuning（微调）</h5>
+            <p>用特定领域数据继续训练模型。<strong>改变模型的权重参数</strong>，让它学会新的知识或行为模式。成本高（需要 GPU 和标注数据），但能让模型获得基础训练中没有的能力。比喻：给鹦鹉上一门专业课程。</p>
+          </div>
+        </div>
+        <div class="compare-row">
+          <div class="compare-cell">
+            <h5>RAG（检索增强生成）</h5>
+            <p><strong>动态检索</strong>外部知识库，把检索结果作为上下文喂给模型。知识可以随时更新（改数据库即可），不需要重新训练模型。适合知识频繁变化的场景（如企业内部文档）。比喻：开卷考试——AI 现场查资料再答题。</p>
+          </div>
+          <div class="compare-cell">
+            <h5>Fine-tuning（微调）</h5>
+            <p><strong>静态内化</strong>知识到模型参数中。知识更新需要重新训练，但推理时不需要检索步骤，速度更快。适合知识相对稳定、需要深度理解的场景。比喻：闭卷考试——AI 把知识背下来了。</p>
+          </div>
+        </div>
+        <div class="compare-row">
+          <div class="compare-cell">
+            <h5>AI Copilot（AI 副驾驶）</h5>
+            <p>AI 作为<strong>辅助工具</strong>，与人类协作完成工作。人类是主导者，AI 提供建议。比如 GitHub Copilot 建议代码，人类决定是否采纳。适合需要人类判断的创造性工作。</p>
+          </div>
+          <div class="compare-cell">
+            <h5>AI Agent（AI 智能体）</h5>
+            <p>AI 作为<strong>自主执行者</strong>，给定目标后自己规划、执行、调整。人类设定目标，AI 负责实现。比如 AutoGPT 自主完成市场调研报告。适合流程化、可自动化的任务。</p>
+          </div>
+        </div>
+        <div class="compare-row">
+          <div class="compare-cell">
+            <h5>Generative AI（生成式 AI）</h5>
+            <p><strong>泛指</strong>所有能生成内容（文本、图像、音频、视频、代码）的 AI 技术。包括 LLM、Diffusion 模型、GAN 等。是 AI 的一个"能力类别"。</p>
+          </div>
+          <div class="compare-cell">
+            <h5>AI Native（AI 原生）</h5>
+            <p><strong>指产品架构哲学</strong>——从设计之初就把 AI 作为核心能力，而非后期添加的功能。强调 AI 是产品的"神经系统"，而非"外挂模块"。是产品的一种"设计理念"。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════
+         06 推荐课程
+         ═══════════════════════════════════════════════ -->
+    <section id="courses">
+      <span class="section-label">06 / 课程</span>
+      <h2>推荐阅读与课程</h2>
+      <p class="lead">
+        这些资源帮助产品经理和 FDE 理解 AI Native 时代的思维方式——不是教你写代码，而是教你"如何与 AI 协作"。
+      </p>
+
+      <div class="courses-list">
+        <div class="course-item">
+          <div class="course-num">01</div>
+          <div class="course-info">
+            <h4>《Generative AI for Everyone》</h4>
+            <div class="course-meta">Andrew Ng（吴恩达）· DeepLearning.AI · 在线课程 · 免费</div>
+            <p>吴恩达专门为<strong>非技术人员</strong>设计的生成式 AI 入门课程。用通俗语言解释 LLM 的工作原理、Prompt Engineering 的核心技巧、AI 的商业应用场景。课程中有大量实际案例：如何用 AI 提升客服效率？如何用 AI 加速内容创作？学完能对 AI 的商业价值有系统认知。</p>
+            <span class="course-tag">零技术门槛</span>
+            <span class="course-tag">商业视角</span>
+          </div>
+        </div>
+
+        <div class="course-item">
+          <div class="course-num">02</div>
+          <div class="course-info">
+            <h4>《ChatGPT Prompt Engineering for Developers》</h4>
+            <div class="course-meta">Andrew Ng & OpenAI · DeepLearning.AI · 在线课程 · 免费</div>
+            <p>虽然标题里有"for Developers"，但这门课的实际内容是<strong>"如何用结构化思维和 AI 沟通"</strong>——这正是产品经理需要的。课程教授：角色设定、Few-shot 示例、思维链提示、结构化输出等核心技巧。即使不写代码，也能学会如何写出"让 AI 听话"的提示词。</p>
+            <span class="course-tag">Prompt Engineering</span>
+            <span class="course-tag">实战导向</span>
+          </div>
+        </div>
+
+        <div class="course-item">
+          <div class="course-num">03</div>
+          <div class="course-info">
+            <h4>《Building LLM Applications》系列课程</h4>
+            <div class="course-meta">Hugging Face / LangChain 官方 · 在线文档/课程 · 免费</div>
+            <p>Hugging Face 和 LangChain 官方提供的<strong>"AI 应用开发"入门指南</strong>。从"什么是 RAG"到"如何搭建一个 Agent"，用大量代码示例和架构图解释概念。产品经理可以跳过代码部分，重点阅读架构设计和产品决策部分——理解"为什么 RAG 比微调更适合大多数场景"。</p>
+            <span class="course-tag">架构视角</span>
+            <span class="course-tag">产品经理友好</span>
+          </div>
+        </div>
+
+        <div class="course-item">
+          <div class="course-num">04</div>
+          <div class="course-info">
+            <h4>《The Coming Wave》</h4>
+            <div class="course-meta">Mustafa Suleyman · 书籍 · 中文译本《即将到来的浪潮》</div>
+            <p>DeepMind 联合创始人撰写的<strong>AI 时代必读之作</strong>。不是技术书，而是关于"AI 将如何改变社会"的深度思考。作者讨论了 AI 的治理挑战、就业影响、权力集中风险，以及我们如何应对。适合产品经理从"技术"和"社会"两个维度理解 AI Native 的深远影响。</p>
+            <span class="course-tag">哲学视角</span>
+            <span class="course-tag">社会影响</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════
+         FINALE — 全系列回顾
+         ═══════════════════════════════════════════════ -->
+    <section class="finale">
+      <div class="stage-badge">最终章 / 完结</div>
+      <h2>六十年，六次跃迁</h2>
+      <p>
+        从 1960 年代的单体巨兽，到 2020 年代的 AI Native 智能体——产品架构的演进不是一条直线，而是一系列<strong>认知范式的跃迁</strong>。每一次跃迁的核心，都是人类对"软件能做什么"的想象力被重新打开。
+      </p>
+
+      <div class="finale-journey">
+        <div class="finale-stage">单体架构<br><span style="color:var(--muted);font-size:10px">1960s–1990s</span></div>
+        <div class="finale-stage">分层架构<br><span style="color:var(--muted);font-size:10px">1990s–2000s</span></div>
+        <div class="finale-stage">SOA 架构<br><span style="color:var(--muted);font-size:10px">2000s–2010s</span></div>
+        <div class="finale-stage">微服务架构<br><span style="color:var(--muted);font-size:10px">2010s–2020s</span></div>
+        <div class="finale-stage">云原生架构<br><span style="color:var(--muted);font-size:10px">2015–2022</span></div>
+        <div class="finale-stage current">AI Native 架构<br><span style="color:var(--accent);font-size:10px">2022–至今</span></div>
+      </div>
+
+      <p style="margin-top:40px">
+        <strong>对产品经理的启示：</strong>理解架构的演进不是为了记住历史，而是为了把握趋势。下一次跃迁已经在发生——多模态 AI、具身智能、AI 自主决策……<strong>不变的是：技术的本质始终是让软件更贴近人类的思维方式。</strong>
+      </p>
+
+      <div class="finale-nav">
+        <a href="stage-1-monolithic.html">阶段一</a>
+        <a href="stage-2-layered.html">阶段二</a>
+        <a href="stage-3-soa.html">阶段三</a>
+        <a href="stage-4-microservices.html">阶段四</a>
+        <a href="stage-5-cloudnative.html">阶段五</a>
+        <a href="#" style="border-color:var(--accent);color:var(--accent)">阶段六</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    产品架构演进之旅 · 阶段六 / 共六阶段 · 最终章<br>
+    面向 AI 产品经理与 FDE 的叙事课件
+  </footer>
+
+  <script>
+    // Progress bar
+    const progressFill = document.getElementById('progressFill');
+    function updateProgress() {
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const docHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+      progressFill.style.width = progress + '%';
+    }
+    window.addEventListener('scroll', updateProgress);
+    updateProgress();
+
+    // Active nav link
+    const navLinks = document.querySelectorAll('.nav-links a');
+    const sections = document.querySelectorAll('section[id]');
+    function updateActiveNav() {
+      let current = '';
+      sections.forEach(section => {
+        const sectionTop = section.offsetTop;
+        if (window.scrollY >= sectionTop - 120) {
+          current = section.getAttribute('id');
+        }
+      });
+      navLinks.forEach(link => {
+        link.classList.toggle('active', link.getAttribute('data-section') === current);
+      });
+    }
+    window.addEventListener('scroll', updateActiveNav);
+    updateActiveNav();
+  </script>
+</body>
+</html>

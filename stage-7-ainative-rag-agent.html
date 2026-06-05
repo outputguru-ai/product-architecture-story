@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>阶段七 · AI Native 雏形 — RAG + Agent 时代 — 产品架构的前世今生</title>
+  <style>
+    /* ═══════════════════════════════════════════════
+       Editorial — Monocle / FT magazine 方向
+       Palette & Typography
+       ═══════════════════════════════════════════════ */
+    :root {
+      --bg:      oklch(98% 0.004 95);
+      --surface: oklch(100% 0.002 95);
+      --fg:      oklch(20% 0.018 70);
+      --muted:   oklch(48% 0.012 70);
+      --border:  oklch(90% 0.006 95);
+      --accent:  oklch(52% 0.10 28);
+
+      --font-display: 'Iowan Old Style', 'Charter', Georgia, 'Noto Serif SC', serif;
+      --font-body:    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', system-ui, sans-serif;
+      --font-mono:    'SF Mono', 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+
+      --max-width: 720px;
+      --gutter: 24px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      scroll-behavior: smooth;
+      scroll-padding-top: 80px;
+    }
+
+    body {
+      font-family: var(--font-body);
+      color: var(--fg);
+      background: var(--bg);
+      line-height: 1.75;
+      font-size: 17px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Navigation ── */
+    .nav-bar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      background: rgba(252, 252, 250, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 var(--gutter);
+    }
+    .nav-inner {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+    }
+    .nav-brand {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .nav-brand strong {
+      color: var(--fg);
+      font-weight: 600;
+    }
+    .nav-links {
+      display: flex;
+      gap: 20px;
+      list-style: none;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .nav-links::-webkit-scrollbar { display: none; }
+    .nav-links a {
+      font-size: 13px;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s;
+      position: relative;
+      white-space: nowrap;
+    }
+    .nav-links a:hover,
+    .nav-links a.active { color: var(--fg); }
+    .nav-links a.active::after {
+      content: '';
+      position: absolute;
+      bottom: -4px; left: 0; right: 0;
+      height: 1.5px;
+      background: var(--accent);
+    }
+    .nav-links a.nav-home {
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    /* ── Progress bar ── */
+    .progress-track {
+      position: fixed;
+      top: 56px; left: 0; right: 0;
+      height: 2px;
+      background: var(--border);
+      z-index: 100;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      width: 0%;
+      transition: width 0.1s linear;
+    }
+
+    /* ── Main container ── */
+    main {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 var(--gutter);
+    }
+
+    /* ── Section spacing ── */
+    section {
+      padding: 80px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    section:last-of-type { border-bottom: none; }
+
+    /* ── Typography ── */
+    h1, h2, h3 {
+      font-family: var(--font-display);
+      font-weight: 600;
+      line-height: 1.2;
+      color: var(--fg);
+    }
+    h1 {
+      font-size: clamp(42px, 6vw, 64px);
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+    h2 {
+      font-size: clamp(28px, 4vw, 40px);
+      margin-bottom: 32px;
+      letter-spacing: -0.01em;
+    }
+    h3 {
+      font-size: 22px;
+      margin-bottom: 16px;
+      margin-top: 40px;
+    }
+    .section-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 12px;
+      display: block;
+    }
+    .lead {
+      font-size: 20px;
+      line-height: 1.65;
+      color: var(--muted);
+      margin-bottom: 40px;
+      font-family: var(--font-display);
+    }
+    p { margin-bottom: 20px; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Hero ── */
+    .hero {
+      padding-top: 140px;
+      padding-bottom: 60px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .stage-badge {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      padding: 6px 16px;
+      margin-bottom: 32px;
+    }
+    .hero h1 { margin-bottom: 12px; }
+    .hero-subtitle {
+      font-family: var(--font-display);
+      font-size: 20px;
+      color: var(--muted);
+      margin-bottom: 48px;
+    }
+    .hero-meta {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+    }
+
+    /* ── Timeline strip ── */
+    .timeline-strip {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 48px;
+      flex-wrap: wrap;
+    }
+    .timeline-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--border);
+    }
+    .timeline-dot.active {
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(180, 80, 40, 0.15);
+    }
+    .timeline-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 8px;
+      text-align: center;
+      width: 100%;
+    }
+
+    /* ── Pull quote ── */
+    .pull-quote {
+      border-left: 3px solid var(--accent);
+      padding-left: 28px;
+      margin: 48px 0;
+      font-family: var(--font-display);
+      font-size: 22px;
+      line-height: 1.5;
+      color: var(--fg);
+    }
+    .pull-quote cite {
+      display: block;
+      margin-top: 12px;
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-style: normal;
+      color: var(--muted);
+    }
+
+    /* ── Story block ── */
+    .story-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 32px;
+      margin: 40px 0;
+    }
+    .story-block h4 {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+
+    /* ── Timeline events ── */
+    .events-list {
+      list-style: none;
+      margin: 32px 0;
+    }
+    .events-list li {
+      display: flex;
+      gap: 20px;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .events-list li:last-child { border-bottom: none; }
+    .event-year {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--accent);
+      min-width: 56px;
+      font-weight: 600;
+    }
+    .event-text {
+      font-size: 15px;
+      color: var(--fg);
+    }
+
+    /* ── Personas ── */
+    .personas-grid {
+      display: grid;
+      gap: 24px;
+      margin: 40px 0;
+    }
+    .persona-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 32px;
+    }
+    .persona-card h4 {
+      font-family: var(--font-display);
+      font-size: 20px;
+      margin-bottom: 4px;
+    }
+    .persona-role {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+    .persona-scene {
+      font-size: 15px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+    .persona-scene strong { color: var(--fg); }
+
+    /* ── Product cards ── */
+    .products-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      margin: 32px 0;
+    }
+    .product-card {
+      border: 1px solid var(--border);
+      padding: 24px;
+      transition: border-color 0.2s;
+    }
+    .product-card:hover { border-color: var(--accent); }
+    .product-card h4 {
+      font-family: var(--font-display);
+      font-size: 18px;
+      margin-bottom: 6px;
+    }
+    .product-card .product-year {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+    .product-card p {
+      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 0;
+    }
+
+    /* ── Insight card ── */
+    .insight-grid {
+      display: grid;
+      gap: 20px;
+      margin: 32px 0;
+    }
+    .insight-card {
+      border-left: 3px solid var(--accent);
+      padding-left: 24px;
+    }
+    .insight-card h4 {
+      font-family: var(--font-display);
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+    .insight-card p {
+      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 0;
+    }
+
+    /* ── Keywords ── */
+    .keyword-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      margin: 32px 0;
+    }
+    .keyword-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 24px;
+    }
+    .keyword-card h4 {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    .keyword-card .keyword-cn {
+      font-family: var(--font-display);
+      font-size: 18px;
+      margin-bottom: 4px;
+    }
+    .keyword-card .keyword-en {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .keyword-card p {
+      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 0;
+    }
+
+    /* ── Compare ── */
+    .compare-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 32px;
+      margin: 32px 0;
+    }
+    .compare-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 20px;
+    }
+    .compare-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .compare-row:last-child { border-bottom: none; }
+    .compare-cell h5 {
+      font-family: var(--font-display);
+      font-size: 16px;
+      margin-bottom: 6px;
+    }
+    .compare-cell p {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 0;
+    }
+    .compare-vs {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* ── Connection map ── */
+    .connection-list {
+      margin: 32px 0;
+      padding-left: 0;
+      list-style: none;
+    }
+    .connection-list li {
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 15px;
+    }
+    .connection-list li:last-child { border-bottom: none; }
+    .connection-list .conn-keyword {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--accent);
+    }
+    .connection-list .conn-arrow {
+      color: var(--muted);
+      margin: 0 8px;
+    }
+
+    /* ── Courses ── */
+    .courses-list {
+      display: grid;
+      gap: 16px;
+      margin: 32px 0;
+    }
+    .course-item {
+      border: 1px solid var(--border);
+      padding: 24px;
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+    }
+    .course-num {
+      font-family: var(--font-mono);
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--accent);
+      line-height: 1;
+      min-width: 36px;
+    }
+    .course-info h4 {
+      font-family: var(--font-display);
+      font-size: 18px;
+      margin-bottom: 4px;
+    }
+    .course-meta {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    .course-info p {
+      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 0;
+    }
+    .course-tag {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 2px 8px;
+      margin-top: 10px;
+    }
+
+    /* ── Finale ── */
+    .finale {
+      text-align: center;
+      padding: 100px 0 60px;
+    }
+    .finale h2 {
+      font-size: clamp(32px, 5vw, 48px);
+      margin-bottom: 20px;
+    }
+    .finale p {
+      color: var(--muted);
+      max-width: 560px;
+      margin: 0 auto 40px;
+    }
+    .finale-journey {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin: 40px 0;
+    }
+    .finale-stage {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+      padding: 8px 14px;
+      border: 1px solid var(--border);
+    }
+    .finale-stage.current {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+    .finale-nav {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 32px;
+      flex-wrap: wrap;
+    }
+    .finale-nav a {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 8px 16px;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .finale-nav a:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 48px var(--gutter);
+      border-top: 1px solid var(--border);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* ── Responsive ── */
+    @media (min-width: 640px) {
+      .personas-grid { grid-template-columns: repeat(2, 1fr); }
+      .products-grid { grid-template-columns: repeat(2, 1fr); }
+      .keyword-grid  { grid-template-columns: repeat(2, 1fr); }
+      .insight-grid  { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (min-width: 860px) {
+      .personas-grid { grid-template-columns: repeat(3, 1fr); }
+      .products-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Progress -->
+  <div class="progress-track">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="nav-bar">
+    <div class="nav-inner">
+      <div class="nav-brand"><strong>架构演进</strong> / 阶段七 · AI Native 雏形</div>
+      <ul class="nav-links">
+        <li><a href="index.html" class="nav-home">← 首页</a></li>
+        <li><a href="#why" data-section="why">起源</a></li>
+        <li><a href="#people" data-section="people">人物</a></li>
+        <li><a href="#products" data-section="products">产品</a></li>
+        <li><a href="#mind" data-section="mind">认知</a></li>
+        <li><a href="#keywords" data-section="keywords">关键词</a></li>
+        <li><a href="#courses" data-section="courses">课程</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <!-- ═══════════════════════════════════════════════
+         HERO
+         ═══════════════════════════════════════════════ -->
+    <header class="hero">
+      <div class="stage-badge">阶段七 / 共八阶段</div>
+      <h1>AI Native RAG + Agent 时代</h1>
+      <p class="hero-subtitle">2023 – 2024 · 给 AI 装上记忆和手脚——检索增强生成、工具调用、自主决策</p>
+      <p class="hero-meta">产品架构演进之旅 · 面向 AI 产品经理的叙事课件</p>
+
+      <div class="timeline-strip">
+        <div class="timeline-dot"></div>
+        <div class="timeline-dot"></div>
+        <div class="timeline-dot"></div>
+        <div class="timeline-dot"></div>
+        <div class="timeline-dot"></div>
+        <div class="timeline-dot"></div>
+        <div class="timeline-dot active"></div>
+        <div class="timeline-dot"></div>
+        <div class="timeline-label">单体 → 分层 → SOA → 微服务 → 云原生 → Prompt → RAG+Agent → Multi-Agent</div>
+      </div>
+    </header>
+
+    <!-- ═══════════════════════════════════════════════
+         01 为什么会诞生
+         ═══════════════════════════════════════════════ -->
+    <section id="why">
+      <span class="section-label">01 / 起源</span>
+      <h2>为什么 Prompt 不够了？</h2>
+      <p class="lead">
+        ChatGPT 的横空出世让所有人看到了 AI 的潜力。但很快，一个残酷的现实浮出水面：<strong>大语言模型会"一本正经地胡说八道"——它 hallucinate（幻觉），它没有访问企业私有数据的权限，它对 2022 年之后发生的事情一无所知。</strong> 2023–2024 年，整个行业意识到：光靠 Prompt 是远远不够的。
+      </p>
+
+      <p>
+        要理解 RAG + Agent 时代为什么诞生，我们必须先回到<strong>大模型启蒙时代的"天花板"</strong>。在 2022 年底到 2023 年初，最热门的"AI 应用"就是对着 ChatGPT 写提示词。产品经理们发现，精心设计的 Prompt 确实能让模型输出质量提升数倍，但有几个根本性的问题无法解决：模型不知道你公司的内部政策、不知道昨天的股价、不能帮你查邮件、不能操作你的 CRM 系统。它就像一个博学但闭门不出的学者——什么都懂一点，但什么都不做。<br><br>
+        更重要的是，<strong>那时候的产品架构本质上是"传统架构 + AI API"</strong>——AI 是外挂的、可选的、可替换的。这就像一个餐厅请了一位超级厉害的翻译，但餐厅本身的运营模式没有任何改变。真正的变革，要等到 AI 从"插件"变成"基础设施"。
+      </p>
+
+      <p>
+        企业级场景的痛点更加明显。一位银行的高管问："能不能让 AI 帮我审贷款申请？"答案是：可以，但 AI 不知道贵行的风控规则。一位医院的信息科主任问："能不能让 AI 辅助诊断？"答案是：可以，但 AI 读不了贵院的电子病历。一位律师事务所的合伙人问："能不能让 AI 查判例？"答案是：可以，但 AI 的"知识"截止到训练数据的时间点。<strong>没有外部记忆和外部工具，AI 只能是一个聪明的聊天机器人，而不是一个能干活的员工。</strong>
+      </p>
+
+      <div class="pull-quote">
+        "Prompt Engineering 是给 AI 一副好嗓子。RAG 和 Agent 是给 AI 装上记忆和手脚。"
+        <cite>—— 2023 年一位 AI 应用开发者的总结</cite>
+      </div>
+
+      <p>
+        <strong>两大解决方案在 2023 年同时涌现：</strong>
+      </p>
+
+      <p>
+        <strong>RAG（检索增强生成）</strong>解决的是"记忆"问题。它的思路极其朴素：用户提问时，先从一个外部知识库（比如企业的文档、数据库、网页）中检索出最相关的片段，把这些片段和用户的原始问题一起塞给 LLM，让它"基于这些资料来回答"。这就像让 AI 开卷考试——它不需要背诵所有知识，只需要知道去哪里查、查到了怎么组织答案。<strong>RAG 把 AI 从一个"背诵者"变成了"研究员"。</strong>
+      </p>
+
+      <p>
+        <strong>Agent（智能体）</strong>解决的是"手脚"问题。它的核心思想是：给 AI 一套可以调用的工具（搜索 API、计算器、数据库查询、邮件发送、日历创建……），让 AI 自己判断"为了完成这个任务，我需要调用哪些工具、按什么顺序调用"。GPT-4 在 2023 年推出的 Function Calling API 是这个方向的关键基础设施。<strong>Agent 把 AI 从一个"对话者"变成了"执行者"。</strong>
+      </p>
+
+      <div class="story-block">
+        <h4>五股推动力</h4>
+        <p>
+          <strong>① Hallucination crisis（幻觉危机）：</strong>2023 年初，大量企业试点 AI 项目因为"AI 胡说八道"而失败。一个著名的案例是：某律师用 ChatGPT 写法庭文件，结果 AI 编造了完全不存在的判例。这个事件登上了新闻头条，让企业对 AI 的"可信度"产生了严重质疑。<strong>"如果不解决幻觉问题，AI 永远进不了严肃业务场景"——这是 RAG 成为主流架构的直接动力。</strong>
+        </p>
+        <p style="margin-top:16px">
+          <strong>② Knowledge cutoff（知识截止时间）：</strong>GPT-4 的训练数据截止到 2023 年 4 月，之后发生的事它一概不知。企业的私有数据（内部文档、客户记录、产品手册）从未出现在训练数据中。这意味着：<strong>即便模型再聪明，它对"你的业务"也是盲人摸象。</strong> RAG 让企业能把 AI 接入自己的数据，而不需要重新训练一个模型。
+        </p>
+        <p style="margin-top:16px">
+          <strong>③ Enterprise adoption barrier（企业采纳门槛）：</strong>2023 年中，"AI 赋能"成为每一家大企业的战略议题，但 IT 部门的反馈很一致："我们不能把客户数据发给 OpenAI 的公有 API。"这催生了私有化部署的需求——企业需要在自己可控的环境中运行 AI，并确保 AI 只访问被授权的数据。<strong>RAG 架构天然适合私有化：知识库留在本地，只有检索到的片段传给模型。</strong>
+        </p>
+        <p style="margin-top:16px">
+          <strong>④ Tool use emergence（工具使用能力的涌现）：</strong>2023 年 3 月，GPT-4 发布的同时推出了 Function Calling API。这是 LLM 第一次能"结构化地调用外部工具"——模型输出的不是自然语言，而是一个 JSON 格式的函数调用指令（如 {"function": "get_weather", "args": {"city": "北京"}}）。<strong>这个看似简单的 API 彻底改变了 AI 的能力边界：AI 不再只是"说话"，它可以"行动"。</strong>
+        </p>
+        <p style="margin-top:16px">
+          <strong>⑤ Agent frameworks（Agent 框架的爆发）：</strong>LangChain（2022 年底发布，2023 年爆发）、AutoGPT（2023 年 4 月 GitHub 星标数一周破 10 万）、BabyAGI（2023 年 4 月）……这些框架证明了一件事：AI 可以自主地分解任务、调用工具、观察结果、调整策略。<strong>Agent 框架把"AI 能做什么"的想象力从"回答一个问题"扩展到了"完成一个项目"。</strong>
+        </p>
+      </div>
+
+      <p>
+        那么，<strong>科学认知发生了怎样的变化</strong>？最核心的认知迁移是：<strong>从"AI as a chatbot"到"AI as a system component"</strong>。2022 年，人们把 AI 看作一个对话界面；2023–2024 年，人们开始把 AI 看作一个可以嵌入任何系统的"认知模块"——它接收输入（问题+上下文+工具）、执行推理、产生输出（答案+行动）。这个认知转变的深远影响是：产品经理开始像设计"微服务"一样设计"AI 模块"——每个模块有明确的输入输出、有状态管理、有错误处理、有成本预算。
+      </p>
+
+      <p>
+        另一个深刻的认知转变是<strong>"数据工程 > 模型工程"</strong>。2023 年初，所有人的目光都集中在"哪个模型最强"上。但到 2023 年底，实践者们发现：<strong>决定 RAG 系统质量的往往不是模型，而是数据准备——文档怎么切分、嵌入模型怎么选、检索策略怎么调、重排序怎么做。</strong> 这催生了一个全新的工种："RAG 工程师"——他们的核心技能不是训练模型，而是搭建和维护高质量的知识管道。
+      </p>
+
+      <p>
+        为什么是<strong>RAG + Agent</strong>而不是别的方向？因为 Prompt Engineering 把 AI 的能力天花板推到了一个点：模型本身足够聪明，但缺乏记忆和行动力。RAG 补上了记忆，Agent 补上了行动力。当两者结合时，AI 第一次具备了"理解任务 → 检索信息 → 调用工具 → 生成结果"的完整闭环——这让它从"玩具"变成了"工具"。
+      </p>
+
+      <h3>关键事件时间线</h3>
+      <ul class="events-list">
+        <li>
+          <span class="event-year">2023</span>
+          <span class="event-text">GPT-4 发布并推出 Function Calling API——LLM 第一次能结构化调用外部工具。</span>
+        </li>
+        <li>
+          <span class="event-year">2023</span>
+          <span class="event-text">LangChain 框架快速迭代，成为连接 LLM、数据源和工具的事实标准。</span>
+        </li>
+        <li>
+          <span class="event-year">2023</span>
+          <span class="event-text">Meta 开源 LLaMA，开源大模型生态爆发，降低了企业私有化部署的门槛。</span>
+        </li>
+        <li>
+          <span class="event-year">2023</span>
+          <span class="event-text">AutoGPT 在 GitHub 上一周获 10 万星标——AI 自主完成任务的愿景引发全球热议。</span>
+        </li>
+        <li>
+          <span class="event-year">2023</span>
+          <span class="event-text">向量数据库（Pinecone、Weaviate、Chroma）成为 AI 基础设施的热门赛道。</span>
+        </li>
+        <li>
+          <span class="event-year">2024</span>
+          <span class="event-text">RAG 成为企业级 AI 应用的"标准架构模式"——几乎每个 LLM 应用都包含检索层。</span>
+        </li>
+        <li>
+          <span class="event-year">2024</span>
+          <span class="event-text">Dify、Flowise 等可视化 LLM 应用开发平台崛起，让非工程师也能搭建 RAG/Agent 应用。</span>
+        </li>
+      </ul>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════
+         02 那个时代的人
+         ═══════════════════════════════════════════════ -->
+    <section id="people">
+<span class="section-label">02 / 人物</span>
+      <h2>那个时代的人，在干什么</h2>
+      <p class="lead">
+        2023–2024 年，AI 领域出现了两个新角色：RAG 工程师和 Agent 开发者。他们的工作不再是"和 AI 聊天"，而是"让 AI 能查资料、能调用工具、能完成真实任务"。
+      </p>
+
+      <div class="personas-grid">
+        <div class="persona-card">
+          <h4>小陈 · RAG 工程师</h4>
+          <div class="persona-role">2023–2024 / AI 应用开发公司</div>
+          <div class="persona-scene">
+            小陈的日常工作是<strong>构建企业知识库的 AI 问答系统</strong>。他上午在"切文档"——把几百页的用户手册切成 500 字的小块；下午在调"嵌入模型"——测试哪种模型能把"退货政策"和"退款流程"映射到相近的向量；晚上在写"检索逻辑"——确保用户问"怎么退钱"时，系统能召回"退货政策"的相关段落。他的口头禅是：<strong>"难点不是 LLM，而是把正确的上下文塞进提示词。"</strong> 他最骄傲的时刻：客户说"这个 AI 比客服还懂我们的产品"。
+          </div>
+        </div>
+        <div class="persona-card">
+          <h4>小美 · 企业数字化转型顾问</h4>
+          <div class="persona-role">2023–2024 / 咨询公司</div>
+          <div class="persona-scene">
+            小美帮助 Fortune 500 公司采用 AI。她的标准话术是：<strong>"不要微调，用 RAG。"</strong> 她给一家制药公司搭建了内部知识库：把 10 万页的研发文档、法规文件、临床试验报告接入 AI。现在研发人员可以直接问 AI："这种化合物在欧盟的审批要求是什么？"AI 会检索相关法规文档并给出带引用来源的回答。她的挑战是：<strong>说服法务部门"AI 的回答可以作为参考，但不能替代律师意见"。</strong>
+          </div>
+        </div>
+        <div class="persona-card">
+          <h4>阿强 · 独立开发者 / Indie Hacker</h4>
+          <div class="persona-role">2023–2024 / 远程工作</div>
+          <div class="persona-scene">
+            阿强在巴厘岛的海边公寓里开发 AI SaaS 工具。他用 LangChain + OpenAI API + Pinecone 搭了一个"法律文书生成器"——律师上传案件信息，AI 自动生成起诉状草稿。他的成本账是这样的：每次 GPT-4 调用 $0.03，每天 1000 次调用 = $30/天 = $900/月。他设计了<strong>"模型路由"</strong>策略：简单任务用 GPT-3.5（$0.002/次），复杂任务才用 GPT-4。这样成本降低了 70%。<strong>他的最大焦虑：OpenAI 随时可能涨价，或者关闭 API。</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="pull-quote">
+        "2023 年最让我兴奋的不是 GPT-4 本身，而是看到一家小型律所用 RAG 搭建了自己的案例检索系统——投入不到 1 万美元，效果媲美几十万美金的传统法律数据库。"
+        <cite>—— 一位 AI 应用开发者的观察</cite>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════
+         03 涌现的产品
+         ═══════════════════════════════════════════════ -->
+    <section id="products">
+<span class="section-label">03 / 产品</span>
+      <h2>那个时代诞生了什么</h2>
+      <p class="lead">
+        RAG + Agent 时代的产品分为三类：让 AI 有记忆的工具（RAG/向量数据库）、让 AI 有手脚的框架（Agent 框架）、以及直接面向用户的"AI 搜索"产品。
+      </p>
+
+      <div class="products-grid">
+        <div class="product-card">
+          <h4>LangChain</h4>
+          <div class="product-year">2022 · LLM 应用开发框架</div>
+          <p>最火的 LLM 应用框架。提供"链式"工作流编排——把模型调用、API 调用、知识库检索串联起来。它的核心理念是：复杂 AI 应用不是一次模型调用，而是<strong>多个步骤的流水线</strong>。代表产品：文档问答、SQL 生成、多步骤推理。</p>
+        </div>
+        <div class="product-card">
+          <h4>LlamaIndex</h4>
+          <div class="product-year">2022 · 数据框架 for LLM</div>
+          <p>专注于<strong>数据连接</strong>——让大模型能访问企业内部数据（PDF、数据库、API）。相比 LangChain 的"通用编排"，LlamaIndex 更聚焦于"如何让 AI 读懂你的文档"。它是 RAG 系统的核心组件。</p>
+        </div>
+        <div class="product-card">
+          <h4>Pinecone / Weaviate / Chroma</h4>
+          <div class="product-year">2019 / 2018 / 2022 · 向量数据库</div>
+          <p><strong>向量数据库</strong>是 RAG 的基础设施。它们存储"嵌入向量"（文本的数学表示），支持"语义搜索"——找"意思相近"的内容，而非"关键词匹配"。Pinecone 是托管服务，Chroma 是开源本地方案，Weaviate 支持多模态向量。</p>
+        </div>
+        <div class="product-card">
+          <h4>Dify / Flowise</h4>
+          <div class="product-year">2023 · 可视化 LLM 开发平台</div>
+          <p>让非程序员也能搭建 AI 应用。Dify 提供可视化工作流编排、提示词管理、知识库构建；Flowise 基于 LangChain，用拖拽方式连接节点。它们代表了<strong>"AI 应用开发的低代码化"</strong>趋势。</p>
+        </div>
+        <div class="product-card">
+          <h4>Perplexity AI</h4>
+          <div class="product-year">2022 · AI 搜索引擎</div>
+          <p>AI 时代的"搜索引擎"。不是返回链接列表，而是实时搜索网络并生成<strong>带引用来源</strong>的综合回答。它是 RAG 思想在消费级产品中的最佳实践——每次回答都附带来源链接，用户可以验证。</p>
+        </div>
+        <div class="product-card">
+          <h4>AutoGPT / BabyAGI</h4>
+          <div class="product-year">2023 · 自主 AI Agent</div>
+          <p>让 AI 自主设定目标并执行。你给 AutoGPT 一个任务（如"帮我调研电动汽车市场"），它会自动分解为子任务、搜索信息、总结报告。<strong>虽然早期版本不太稳定，但它展示了"自主 AI"的愿景。</strong></p>
+        </div>
+        <div class="product-card">
+          <h4>Microsoft 365 Copilot</h4>
+          <div class="product-year">2023 · 企业级 AI 助手</div>
+          <p>AI 嵌入 Word、Excel、PowerPoint、Outlook。在 Word 里帮你写文档，在 Excel 里帮你分析数据，在 Outlook 里帮你写邮件。代表了<strong>"AI 作为办公基础设施"</strong>的方向。</p>
+        </div>
+        <div class="product-card">
+          <h4>Claude 3 with 100K+ Context</h4>
+          <div class="product-year">2024 · 长上下文模型</div>
+          <p>Anthropic 的 Claude 3 支持 200K tokens 的上下文窗口（约 15 万字），可以直接"读"完一本书再回答相关问题。这是 RAG 的<strong>替代方案</strong>：如果窗口够大，直接把整本书塞进去，不需要检索。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════
+         04 心理学认知
+         ═══════════════════════════════════════════════ -->
+    <section id="mind">
+<span class="section-label">04 / 认知</span>
+      <h2>那个时代的人，心里在想什么</h2>
+      <p class="lead">
+        RAG + Agent 时代带来了四个关键认知转变——它们决定了企业如何采纳 AI、开发者如何设计 AI 系统、用户如何信任 AI。
+      </p>
+
+      <div class="insight-grid">
+        <div class="insight-card">
+          <h4>认知一：记忆 > 智商</h4>
+          <p>人们发现，<strong>给 AI 访问正确数据的能力，比用更大的模型更重要。</strong> 一个 GPT-3.5 + 高质量知识库的系统，往往比裸 GPT-4 回答得更准确。这改变了企业的 AI 策略：不再追逐最新最大的模型，而是专注于"如何把自己的数据喂给 AI"。</p>
+        </div>
+        <div class="insight-card">
+          <h4>认知二：工具 = 手脚</h4>
+          <p>AI 没有工具的 AI 只是聊天机器人；有工具的 AI 是员工。<strong>Function Calling 让 AI 第一次能"做事"</strong>——查数据库、发邮件、调 API、写代码。产品设计的核心问题变成了：给 AI 配什么工具？在什么环节调用？如何处理工具调用失败？</p>
+        </div>
+        <div class="insight-card">
+          <h4>认知三：检索 > 背诵</h4>
+          <p>对于企业应用，RAG 比微调（Fine-tuning）更实用。微调需要大量标注数据和算力；RAG 只需要把文档扔进向量数据库。而且 RAG 的回答可以<strong>标注来源</strong>，让用户验证——这是企业合规的关键要求。</p>
+        </div>
+        <div class="insight-card">
+          <h4>认知四：成本 = 架构约束</h4>
+          <p>GPT-4 每次调用 $0.03，百万级用户意味着每天几十万美元的账单。<strong>成本不再是"运营费用"，而是"架构设计约束"。</strong> 工程师开始设计"模型路由"：简单问题用 GPT-3.5，复杂问题用 GPT-4；缓存常见问题的回答；用本地小模型处理敏感数据。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════
+         05 关键词
+         ═══════════════════════════════════════════════ -->
+    <section id="keywords">
+<span class="section-label">05 / 关键词</span>
+      <h2>关键词词典</h2>
+      <p class="lead">
+        RAG + Agent 时代的核心术语。理解这些词，就理解了如何让 AI 从"聊天机器人"变成"业务系统"。
+      </p>
+
+      <div class="keyword-grid">
+        <div class="keyword-card">
+          <h4>KEYWORD 01</h4>
+          <div class="keyword-cn">检索增强生成</div>
+          <div class="keyword-en">RAG (Retrieval-Augmented Generation)</div>
+          <p>解决 LLM"幻觉"和"知识过时"的核心技术。流程：用户提问 → 从知识库检索相关文档 → 把检索结果+用户问题一起喂给 LLM → LLM 基于真实信息生成回答。<strong>通俗理解：让 AI 先"查资料"再"答题"，而不是凭记忆瞎说。</strong></p>
+        </div>
+        <div class="keyword-card">
+          <h4>KEYWORD 02</h4>
+          <div class="keyword-cn">向量数据库</div>
+          <div class="keyword-en">Vector Database</div>
+          <p>专门存储和检索"嵌入向量"的数据库。支持语义搜索——找"意思相近"的内容，而非关键词匹配。<strong>通俗理解：传统数据库按"精确匹配"查找，向量数据库按"语义相似度"查找。</strong> 代表：Pinecone、Weaviate、Chroma、Milvus。</p>
+        </div>
+        <div class="keyword-card">
+          <h4>KEYWORD 03</h4>
+          <div class="keyword-cn">嵌入向量</div>
+          <div class="keyword-en">Embedding</div>
+          <p>把文本、图像等内容转化为高维空间中的数字向量。语义相近的内容在向量空间中距离更近——比如"苹果"和"水果"的距离很近，和"汽车"很远。<strong>通俗理解：给每个概念一个"坐标"，语义相似的概念坐标相近。</strong></p>
+        </div>
+        <div class="keyword-card">
+          <h4>KEYWORD 04</h4>
+          <div class="keyword-cn">分块</div>
+          <div class="keyword-en">Chunking</div>
+          <p>把长文档切分成小片段（通常 200–1000 字），以便检索时精准匹配。分块策略直接影响 RAG 效果：切得太细会丢失上下文，切得太粗会降低检索精度。<strong>通俗理解：把一本书切成便利贴，每张便利贴上写一个知识点。</strong></p>
+        </div>
+        <div class="keyword-card">
+          <h4>KEYWORD 05</h4>
+          <div class="keyword-cn">智能体</div>
+          <div class="keyword-en">AI Agent</div>
+          <p>能自主感知环境、制定计划、调用工具、执行任务的 AI 系统。不是"一问一答"，而是"你给一个目标，它自己想办法完成"。<strong>通俗理解：Agent = AI 员工，能独立完成任务。</strong></p>
+        </div>
+        <div class="keyword-card">
+          <h4>KEYWORD 06</h4>
+          <div class="keyword-cn">函数调用</div>
+          <div class="keyword-en">Function Calling</div>
+          <p>让 LLM 根据用户请求判断需要调用哪个外部 API，并生成调用参数。模型"决定"要做什么，然后"执行"。<strong>通俗理解：给 AI 一张"工具清单"，AI 自己决定用哪把工具。</strong></p>
+        </div>
+        <div class="keyword-card">
+          <h4>KEYWORD 07</h4>
+          <div class="keyword-cn">工具使用</div>
+          <div class="keyword-en">Tool Use</div>
+          <p>比 Function Calling 更广的概念，包括调用 API、查询数据库、使用计算器、执行代码等。Anthropic 的 Claude 和 OpenAI 的 GPT 都支持 Tool Use。<strong>通俗理解：Function Calling 是"打电话"，Tool Use 是"使用任何工具"。</strong></p>
+        </div>
+        <div class="keyword-card">
+          <h4>KEYWORD 08</h4>
+          <div class="keyword-cn">推理+行动</div>
+          <div class="keyword-en">ReAct (Reasoning + Acting)</div>
+          <p>Agent 的核心设计模式：AI 先"思考"（Reasoning）——分析问题、制定计划；再"行动"（Acting）——调用工具、获取信息；然后"观察"结果，再思考下一步。<strong>通俗理解：像侦探破案——先推理，再找线索，再推理，循环直到解决。</strong></p>
+        </div>
+      </div>
+
+      <h3>关键词之间的联系</h3>
+      <ul class="connection-list">
+        <li><span class="conn-keyword">文档</span><span class="conn-arrow">→ 经过 →</span><span class="conn-keyword">Chunking（分块）</span><span class="conn-arrow">→ 生成 →</span><span class="conn-keyword">Embedding（嵌入）</span><span class="conn-arrow">→ 存入 →</span><span class="conn-keyword">Vector DB</span></li>
+        <li><span class="conn-keyword">用户提问</span><span class="conn-arrow">→ 触发 →</span><span class="conn-keyword">语义检索</span><span class="conn-arrow">→ 从 →</span><span class="conn-keyword">Vector DB</span><span class="conn-arrow">→ 获取 →</span><span class="conn-keyword">相关上下文</span><span class="conn-arrow">→ 输入 →</span><span class="conn-keyword">LLM</span><span class="conn-arrow">→ 生成 →</span><span class="conn-keyword">RAG 回答</span></li>
+        <li><span class="conn-keyword">Agent</span><span class="conn-arrow">→ 使用 →</span><span class="conn-keyword">ReAct 模式</span><span class="conn-arrow">→ 调用 →</span><span class="conn-keyword">Function Calling</span><span class="conn-arrow">→ 使用 →</span><span class="conn-keyword">Tools（API/DB）</span></li>
+        <li><span class="conn-keyword">RAG 成本</span><span class="conn-arrow">&lt;</span><span class="conn-keyword">Fine-tuning 成本</span><span class="conn-arrow">→ 所以企业优先选择 →</span><span class="conn-keyword">RAG</span></li>
+      </ul>
+
+      <h3>易混淆概念辨析</h3>
+      <div class="compare-box">
+        <div class="compare-title">RAG vs Fine-tuning</div>
+        <div class="compare-row">
+          <div class="compare-cell"><h5>RAG（检索增强）</h5><p>把文档存入向量库，查询时检索相关片段。优点：数据实时更新、可溯源、成本低。缺点：依赖检索质量。</p></div>
+          <div class="compare-vs">vs</div>
+          <div class="compare-cell"><h5>Fine-tuning（微调）</h5><p>用领域数据继续训练模型。优点：模型本身学会领域知识。缺点：需要大量数据、训练成本高、知识不能实时更新。</p></div>
+        </div>
+        <div class="compare-row">
+          <div class="compare-cell"><h5>产品经理建议</h5><p>先尝试 RAG，90% 的场景够用了。只有当 RAG 无法满足时才考虑微调。</p></div>
+          <div class="compare-vs"></div>
+          <div class="compare-cell"></div>
+        </div>
+      </div>
+
+      <div class="compare-box">
+        <div class="compare-title">Vector DB vs Traditional DB</div>
+        <div class="compare-row">
+          <div class="compare-cell"><h5>传统数据库（MySQL）</h5><p>按精确条件查询。问"苹果"只返回包含"苹果"二字的结果。适合：结构化数据、精确匹配。</p></div>
+          <div class="compare-vs">vs</div>
+          <div class="compare-cell"><h5>向量数据库（Pinecone）</h5><p>按语义相似度查询。问"水果"也会返回"苹果""香蕉"。适合：非结构化文本、语义搜索。</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════
+         06 推荐课程
+         ═══════════════════════════════════════════════ -->
+    <section id="courses">
+<span class="section-label">06 / 课程</span>
+      <h2>如果你想继续深入了解</h2>
+      <p class="lead">
+        以下课程帮助你理解 RAG 和 Agent 的原理，以及如何在产品中应用它们。
+      </p>
+
+      <div class="courses-list">
+        <div class="course-item">
+          <div class="course-num">01</div>
+          <div class="course-info">
+            <h4>《LangChain for LLM Application Development》</h4>
+            <div class="course-meta">吴恩达 / LangChain · 在线课程 · 免费</div>
+            <p>用通俗语言讲解 LangChain 的核心概念：模型、提示、解析器、记忆、链、Agent。课程包含大量可运行的代码示例，但产品经理可以跳过代码，专注理解<strong>"为什么需要链式调用""Agent 是如何决策的"</strong>等概念。</p>
+            <span class="course-tag">免费</span>
+            <span class="course-tag">框架入门</span>
+          </div>
+        </div>
+        <div class="course-item">
+          <div class="course-num">02</div>
+          <div class="course-info">
+            <h4>Pinecone Learning Center</h4>
+            <div class="course-meta">Pinecone · 在线文档 · 免费</div>
+            <p>向量数据库和语义搜索的最佳学习资源。从"什么是嵌入向量"到"如何构建生产级 RAG 系统"，文档写得非常通俗。包含大量架构图和最佳实践。<strong>产品经理重点阅读"RAG 架构模式"和"评估检索质量"两章。</strong></p>
+            <span class="course-tag">免费</span>
+            <span class="course-tag">架构视角</span>
+          </div>
+        </div>
+        <div class="course-item">
+          <div class="course-num">03</div>
+          <div class="course-info">
+            <h4>《Building LLM Apps》</h4>
+            <div class="course-meta">Valentina Alto · 书籍</div>
+            <p>从<strong>产品经理视角</strong>讲解 LLM 应用设计：RAG 架构、Agent 模式、提示工程、评估指标、成本优化。书中用大量真实案例（客服机器人、文档分析、代码助手）说明架构决策的权衡。</p>
+            <span class="course-tag">产品经理友好</span>
+            <span class="course-tag">实战案例</span>
+          </div>
+        </div>
+        <div class="course-item">
+          <div class="course-num">04</div>
+          <div class="course-info">
+            <h4>《LangChain Chat with Your Data》</h4>
+            <div class="course-meta">DeepLearning.AI · 在线课程 · 免费</div>
+            <p>专门讲 RAG 的短课程：文档加载、分块策略、嵌入模型选择、向量存储、检索方法、回答生成。适合快速建立对 RAG 全流程的理解。<strong>课程有可视化流程图，非技术人员也能看懂。</strong></p>
+            <span class="course-tag">免费</span>
+            <span class="course-tag">RAG 专精</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════
+         NEXT STAGE TEASER
+         ═══════════════════════════════════════════════ -->
+    <section class="teaser">
+      <h2>接下来：AI Native Multi-Agent 编排时代</h2>
+      <p>2024 – 至今 · 当一个 Agent 不够了——AI 团队化、工作流编排、AI 成为产品核心</p>
+      <a href="stage-8-ainative-multiagent.html" class="teaser-btn">进入阶段八 →</a>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════
+         FINALE — 全系列回顾
+         ═══════════════════════════════════════════════ -->
+    <section class="finale">
+<div class="stage-badge">阶段七 / 共八阶段</div>
+      <h2>RAG + Agent 时代的启示</h2>
+      <p>
+        RAG + Agent 时代的核心突破是：<strong>AI 从"会说话"进化到了"能查资料、能调用工具、能完成任务"。</strong> 这意味着 AI 不再是玩具，而是可以嵌入真实业务流程的生产力工具。
+      </p>
+      <p style="margin-top:20px">
+        但这个时代的 AI 仍然是"单个工作者"——一个 Agent 处理一个任务。当任务变得足够复杂（如"调研竞品 + 写分析报告 + 制作 PPT + 发送给团队"），我们需要多个 AI 协同工作。这就是下一个阶段：Multi-Agent 编排。
+      </p>
+      <div class="finale-journey">
+        <div class="finale-stage">单体架构<br><span style="color:var(--muted);font-size:10px">1960s–1990s</span></div>
+        <div class="finale-stage">分层架构<br><span style="color:var(--muted);font-size:10px">1990s–2000s</span></div>
+        <div class="finale-stage">SOA 架构<br><span style="color:var(--muted);font-size:10px">2000s–2010s</span></div>
+        <div class="finale-stage">微服务架构<br><span style="color:var(--muted);font-size:10px">2010s–2020s</span></div>
+        <div class="finale-stage">云原生架构<br><span style="color:var(--muted);font-size:10px">2015–2022</span></div>
+        <div class="finale-stage">大模型启蒙<br><span style="color:var(--muted);font-size:10px">2022–2023</span></div>
+        <div class="finale-stage current">RAG+Agent<br><span style="color:var(--accent);font-size:10px">2023–2024</span></div>
+        <div class="finale-stage">Multi-Agent<br><span style="color:var(--muted);font-size:10px">2024–至今</span></div>
+      </div>
+      <div class="finale-nav">
+        <a href="stage-1-monolithic.html">阶段一</a>
+        <a href="stage-2-layered.html">阶段二</a>
+        <a href="stage-3-soa.html">阶段三</a>
+        <a href="stage-4-microservices.html">阶段四</a>
+        <a href="stage-5-cloudnative.html">阶段五</a>
+        <a href="stage-6-ainative-prompt.html">阶段六</a>
+        <a href="#" style="border-color:var(--accent);color:var(--accent)">阶段七</a>
+        <a href="stage-8-ainative-multiagent.html">阶段八</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    产品架构演进之旅 · 阶段七 / 共八阶段<br>
+    面向 AI 产品经理与 FDE 的叙事课件
+  </footer>
+
+  <script>
+    // Progress bar
+    const progressFill = document.getElementById('progressFill');
+    function updateProgress() {
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const docHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+      progressFill.style.width = progress + '%';
+    }
+    window.addEventListener('scroll', updateProgress);
+    updateProgress();
+
+    // Active nav link
+    const navLinks = document.querySelectorAll('.nav-links a');
+    const sections = document.querySelectorAll('section[id]');
+    function updateActiveNav() {
+      let current = '';
+      sections.forEach(section => {
+        const sectionTop = section.offsetTop;
+        if (window.scrollY >= sectionTop - 120) {
+          current = section.getAttribute('id');
+        }
+      });
+      navLinks.forEach(link => {
+        link.classList.toggle('active', link.getAttribute('data-section') === current);
+      });
+    }
+    window.addEventListener('scroll', updateActiveNav);
+    updateActiveNav();
+  </script>
+</body>
+</html>

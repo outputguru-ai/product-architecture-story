@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>产品架构的前世今生 — 从单体到 AI Native</title>
+  <style>
+    /* ═══════════════════════════════════════════════
+       Editorial — Monocle / FT magazine 方向
+       Palette & Typography
+       ═══════════════════════════════════════════════ */
+    :root {
+      --bg:      oklch(98% 0.004 95);
+      --surface: oklch(100% 0.002 95);
+      --fg:      oklch(20% 0.018 70);
+      --muted:   oklch(48% 0.012 70);
+      --border:  oklch(90% 0.006 95);
+      --accent:  oklch(52% 0.10 28);
+
+      --font-display: 'Iowan Old Style', 'Charter', Georgia, 'Noto Serif SC', serif;
+      --font-body:    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', system-ui, sans-serif;
+      --font-mono:    'SF Mono', 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+
+      --max-width: 800px;
+      --gutter: 24px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-body);
+      color: var(--fg);
+      background: var(--bg);
+      line-height: 1.75;
+      font-size: 17px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Nav ── */
+    .nav-bar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      background: rgba(252, 252, 250, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 var(--gutter);
+    }
+    .nav-inner {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+    }
+    .nav-brand {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .nav-brand strong {
+      color: var(--fg);
+      font-weight: 600;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 120px var(--gutter) 60px;
+      text-align: center;
+    }
+    .hero-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 20px;
+    }
+    .hero h1 {
+      font-family: var(--font-display);
+      font-size: clamp(36px, 5vw, 52px);
+      font-weight: 600;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      color: var(--fg);
+      margin-bottom: 20px;
+    }
+    .hero p {
+      font-size: 18px;
+      color: var(--muted);
+      max-width: 560px;
+      margin: 0 auto 40px;
+      line-height: 1.7;
+    }
+    .hero-meta {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.02em;
+    }
+
+    /* ── Timeline connector ── */
+    .timeline {
+      position: relative;
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 var(--gutter) 80px;
+    }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      top: 0; bottom: 0;
+      left: 28px;
+      width: 1.5px;
+      background: var(--border);
+    }
+    @media (min-width: 600px) {
+      .timeline::before { left: calc(50% - 0.75px); }
+    }
+
+    /* ── Stage card ── */
+    .stage {
+      position: relative;
+      padding-left: 64px;
+      margin-bottom: 32px;
+    }
+    @media (min-width: 600px) {
+      .stage {
+        padding-left: 0;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 40px;
+        margin-bottom: 48px;
+      }
+      .stage:nth-child(even) .stage-card { grid-column: 2; }
+      .stage:nth-child(even) .stage-meta { grid-column: 1; grid-row: 1; text-align: right; }
+      .stage:nth-child(odd) .stage-card { grid-column: 1; text-align: right; }
+      .stage:nth-child(odd) .stage-meta { grid-column: 2; grid-row: 1; }
+    }
+
+    .stage-dot {
+      position: absolute;
+      left: 20px;
+      top: 24px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--surface);
+      border: 2px solid var(--accent);
+      z-index: 2;
+    }
+    .stage-dot.current {
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(195, 80, 50, 0.12);
+    }
+    @media (min-width: 600px) {
+      .stage-dot {
+        left: 50%;
+        transform: translateX(-50%);
+      }
+    }
+
+    .stage-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 28px;
+      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+    }
+    .stage-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.06);
+      border-color: var(--accent);
+    }
+
+    .stage-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    .stage-title {
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 600;
+      line-height: 1.25;
+      margin-bottom: 6px;
+      color: var(--fg);
+    }
+    .stage-era {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+    .stage-desc {
+      font-size: 15px;
+      color: var(--muted);
+      line-height: 1.65;
+      margin-bottom: 16px;
+    }
+    .stage-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .stage-tag {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 4px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .stage-meta {
+      padding-top: 24px;
+    }
+    @media (min-width: 600px) {
+      .stage-meta { padding-top: 28px; }
+    }
+    .stage-meta-key {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+    .stage-meta-value {
+      font-size: 15px;
+      color: var(--fg);
+      line-height: 1.6;
+    }
+
+    /* ── Appendix card (special, full width) ── */
+    .appendix-row {
+      max-width: var(--max-width);
+      margin: 0 auto 80px;
+      padding: 0 var(--gutter);
+    }
+    .appendix-card {
+      display: block;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px;
+      text-decoration: none;
+      color: inherit;
+      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    }
+    .appendix-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.06);
+      border-color: var(--accent);
+    }
+    .appendix-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    .appendix-title {
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 600;
+      line-height: 1.25;
+      margin-bottom: 8px;
+    }
+    .appendix-desc {
+      font-size: 15px;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    /* ── Footer ── */
+    footer {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 40px var(--gutter) 80px;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+    footer p {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.8;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 599px) {
+      .hero { padding-top: 96px; }
+      .hero h1 { font-size: 32px; }
+      .stage-card { padding: 20px; }
+      .stage-title { font-size: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="nav-bar">
+    <div class="nav-inner">
+      <div class="nav-brand"><strong>产品架构的前世今生</strong></div>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="hero-eyebrow">Architecture Evolution — 1960s to Present</div>
+    <h1>产品架构的前世今生</h1>
+    <p>从单体到 AI Native，一套面向非技术背景产品经理的架构演进叙事课。八个阶段，读懂代码背后的时代脉搏。</p>
+    <p class="hero-meta">8 个阶段 · 滚动阅读</p>
+  </header>
+
+  <section class="timeline">
+
+    <!-- 阶段一 -->
+    <article class="stage">
+      <div class="stage-dot"></div>
+      <a href="stage-1-monolithic.html" class="stage-card">
+        <div class="stage-label">阶段一</div>
+        <h2 class="stage-title">单体架构时代</h2>
+        <div class="stage-era">1960s — 1990s</div>
+        <p class="stage-desc">所有代码打包在一个程序里，像一台老式机械钟——结构紧凑，牵一发而动全身。</p>
+        <div class="stage-tags">
+          <span class="stage-tag">IBM System/360</span>
+          <span class="stage-tag">ARPANET</span>
+          <span class="stage-tag">Oracle</span>
+        </div>
+      </a>
+      <div class="stage-meta">
+        <div class="stage-meta-key">核心转变</div>
+        <div class="stage-meta-value">从"没有软件"到"软件即程序"——计算从硬件中独立出来。</div>
+      </div>
+    </article>
+
+    <!-- 阶段二 -->
+    <article class="stage">
+      <div class="stage-dot"></div>
+      <a href="stage-2-layered.html" class="stage-card">
+        <div class="stage-label">阶段二</div>
+        <h2 class="stage-title">分层架构时代</h2>
+        <div class="stage-era">1990s — 2000s</div>
+        <p class="stage-desc">代码开始分层，但身体还在一起。就像一栋三层楼房——每层功能不同，仍在同一栋建筑里。</p>
+        <div class="stage-tags">
+          <span class="stage-tag">MVC</span>
+          <span class="stage-tag">J2EE</span>
+          <span class="stage-tag">三层架构</span>
+          <span class="stage-tag">B/S</span>
+        </div>
+      </a>
+      <div class="stage-meta">
+        <div class="stage-meta-key">核心转变</div>
+        <div class="stage-meta-value">从"混在一起"到"关注点分离"——逻辑上分了层，物理上仍在一起。</div>
+      </div>
+    </article>
+
+    <!-- 阶段三 -->
+    <article class="stage">
+      <div class="stage-dot"></div>
+      <a href="stage-3-soa.html" class="stage-card">
+        <div class="stage-label">阶段三</div>
+        <h2 class="stage-title">SOA 架构时代</h2>
+        <div class="stage-era">2000s — 2010s</div>
+        <p class="stage-desc">系统拆成可复用的"服务"，通过 ESB 总线连接。像乐高积木——标准化接口，松耦合组装。</p>
+        <div class="stage-tags">
+          <span class="stage-tag">Web Services</span>
+          <span class="stage-tag">ESB</span>
+          <span class="stage-tag">SOAP</span>
+          <span class="stage-tag">SaaS</span>
+        </div>
+      </a>
+      <div class="stage-meta">
+        <div class="stage-meta-key">核心转变</div>
+        <div class="stage-meta-value">从"代码分层"到"功能服务化"——松耦合、可复用、跨平台互通。</div>
+      </div>
+    </article>
+
+    <!-- 阶段四 -->
+    <article class="stage">
+      <div class="stage-dot"></div>
+      <a href="stage-4-microservices.html" class="stage-card">
+        <div class="stage-label">阶段四</div>
+        <h2 class="stage-title">微服务架构时代</h2>
+        <div class="stage-era">2010s — 2020s</div>
+        <p class="stage-desc">每个服务独立部署、独立扩展。Docker 容器化 + DevOps 文化，让"小团队独立交付"成为可能。</p>
+        <div class="stage-tags">
+          <span class="stage-tag">Docker</span>
+          <span class="stage-tag">Kubernetes</span>
+          <span class="stage-tag">DevOps</span>
+          <span class="stage-tag">CI/CD</span>
+        </div>
+      </a>
+      <div class="stage-meta">
+        <div class="stage-meta-key">核心转变</div>
+        <div class="stage-meta-value">从"逻辑独立"到"物理独立"——每个服务是一个自治的小产品。</div>
+      </div>
+    </article>
+
+    <!-- 阶段五 -->
+    <article class="stage">
+      <div class="stage-dot"></div>
+      <a href="stage-5-cloudnative.html" class="stage-card">
+        <div class="stage-label">阶段五</div>
+        <h2 class="stage-title">云原生架构时代</h2>
+        <div class="stage-era">2015 — 2022</div>
+        <p class="stage-desc">用软件管理软件。Kubernetes 自动调度、Terraform 声明式基础设施、服务网格统一治理。内含主流互联网架构全景详解。</p>
+        <div class="stage-tags">
+          <span class="stage-tag">Serverless</span>
+          <span class="stage-tag">IaC</span>
+          <span class="stage-tag">GitOps</span>
+          <span class="stage-tag">可观测性</span>
+        </div>
+      </a>
+      <div class="stage-meta">
+        <div class="stage-meta-key">核心转变</div>
+        <div class="stage-meta-value">从"命令式运维"到"声明式治理"——基础设施即代码，平台自治。</div>
+      </div>
+    </article>
+
+    <!-- 阶段六 -->
+    <article class="stage">
+      <div class="stage-dot"></div>
+      <a href="stage-6-ainative-prompt.html" class="stage-card">
+        <div class="stage-label">阶段六 · 过渡阶段</div>
+        <h2 class="stage-title">大模型启蒙时代</h2>
+        <div class="stage-era">2022 — 2023</div>
+        <p class="stage-desc">大模型 API 成为新基础设施，但产品架构仍是传统的。AI 是"功能插件"而非"架构核心"。这是 AI Native 的<strong>思想前夜</strong>。</p>
+        <div class="stage-tags">
+          <span class="stage-tag">ChatGPT</span>
+          <span class="stage-tag">GPT-3</span>
+          <span class="stage-tag">Prompt Engineering</span>
+          <span class="stage-tag">Copilot</span>
+        </div>
+      </a>
+      <div class="stage-meta">
+        <div class="stage-meta-key">核心转变</div>
+        <div class="stage-meta-value">从"代码是接口"到"语言是接口"——自然语言成为通用交互方式，但架构尚未原生。</div>
+      </div>
+    </article>
+
+    <!-- 阶段七 -->
+    <article class="stage">
+      <div class="stage-dot"></div>
+      <a href="stage-7-ainative-rag-agent.html" class="stage-card">
+        <div class="stage-label">阶段七 · AI Native 雏形</div>
+        <h2 class="stage-title">AI Native 雏形 — RAG + Agent 时代</h2>
+        <div class="stage-era">2023 — 2024</div>
+        <p class="stage-desc">向量数据库成为核心存储层，Agent 编排引擎成为新中间件。真正的 AI Native 架构思维开始萌芽。</p>
+        <div class="stage-tags">
+          <span class="stage-tag">RAG</span>
+          <span class="stage-tag">Vector DB</span>
+          <span class="stage-tag">LangChain</span>
+          <span class="stage-tag">Function Calling</span>
+        </div>
+      </a>
+      <div class="stage-meta">
+        <div class="stage-meta-key">核心转变</div>
+        <div class="stage-meta-value">从"AI 是外挂插件"到"AI 影响核心架构"——向量存储、Agent 中间件、函数调用协议。</div>
+      </div>
+    </article>
+
+    <!-- 阶段八 -->
+    <article class="stage">
+      <div class="stage-dot current"></div>
+      <a href="stage-8-ainative-multiagent.html" class="stage-card">
+        <div class="stage-label">阶段八 · AI Native 成熟 · 最终章</div>
+        <h2 class="stage-title">AI Native 成熟 — Multi-Agent 编排时代</h2>
+        <div class="stage-era">2024 — 至今</div>
+        <p class="stage-desc">AI 成为产品的"架构假设"——没有 AI 就不存在的产品。多 Agent 协作、推理模型、Vibe Coding。</p>
+        <div class="stage-tags">
+          <span class="stage-tag">Multi-Agent</span>
+          <span class="stage-tag">CrewAI</span>
+          <span class="stage-tag">Vibe Coding</span>
+          <span class="stage-tag">Reasoning Model</span>
+        </div>
+      </a>
+      <div class="stage-meta">
+        <div class="stage-meta-key">核心转变</div>
+        <div class="stage-meta-value">从"AI 是功能"到"AI 是架构假设"——没有 AI 就不存在的产品，人机协作成为默认。</div>
+      </div>
+    </article>
+
+  </section>
+
+  <footer>
+    <p>面向 AI Native 架构小白的产品经理叙事课<br>编辑感 / 杂志叙事 · 单页滚动阅读</p>
+  </footer>
+
+</body>
+</html>

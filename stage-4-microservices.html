@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>阶段四 · 微服务架构时代 — 产品架构的前世今生</title>
+  <style>
+    /* ═══════════════════════════════════════════════
+       Editorial — Monocle / FT magazine 方向
+       Palette & Typography
+       ═══════════════════════════════════════════════ */
+    :root {
+      --bg:      oklch(98% 0.004 95);
+      --surface: oklch(100% 0.002 95);
+      --fg:      oklch(20% 0.018 70);
+      --muted:   oklch(48% 0.012 70);
+      --border:  oklch(90% 0.006 95);
+      --accent:  oklch(52% 0.10 28);
+
+      --font-display: 'Iowan Old Style', 'Charter', Georgia, 'Noto Serif SC', serif;
+      --font-body:    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', system-ui, sans-serif;
+      --font-mono:    'SF Mono', 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+
+      --max-width: 720px;
+      --gutter: 24px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html {
+      scroll-behavior: smooth;
+      scroll-padding-top: 80px;
+    }
+
+    body {
+      font-family: var(--font-body);
+      color: var(--fg);
+      background: var(--bg);
+      line-height: 1.75;
+      font-size: 17px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Navigation ── */
+    .nav-bar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      background: rgba(252, 252, 250, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 var(--gutter);
+    }
+    .nav-inner {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+    }
+    .nav-brand {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .nav-brand strong {
+      color: var(--fg);
+      font-weight: 600;
+    }
+    .nav-links {
+      display: flex;
+      gap: 20px;
+      list-style: none;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .nav-links::-webkit-scrollbar { display: none; }
+    .nav-links a {
+      font-size: 13px;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.2s;
+      position: relative;
+      white-space: nowrap;
+    }
+    .nav-links a:hover,
+    .nav-links a.active { color: var(--fg); }
+    .nav-links a.active::after {
+      content: '';
+      position: absolute;
+      bottom: -4px; left: 0; right: 0;
+      height: 1.5px;
+      background: var(--accent);
+    }
+    .nav-links a.nav-home {
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    /* ── Progress bar ── */
+    .progress-track {
+      position: fixed;
+      top: 56px; left: 0; right: 0;
+      height: 2px;
+      background: var(--border);
+      z-index: 100;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      width: 0%;
+      transition: width 0.1s linear;
+    }
+
+    /* ── Main container ── */
+    main {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 var(--gutter);
+    }
+
+    /* ── Section spacing ── */
+    section {
+      padding: 80px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    section:last-of-type { border-bottom: none; }
+
+    /* ── Typography ── */
+    h1, h2, h3 {
+      font-family: var(--font-display);
+      font-weight: 600;
+      line-height: 1.2;
+      color: var(--fg);
+    }
+    h1 {
+      font-size: clamp(42px, 6vw, 64px);
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+    h2 {
+      font-size: clamp(28px, 4vw, 40px);
+      margin-bottom: 32px;
+      letter-spacing: -0.01em;
+    }
+    h3 {
+      font-size: 22px;
+      margin-bottom: 16px;
+      margin-top: 40px;
+    }
+    .section-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 12px;
+      display: block;
+    }
+    .lead {
+      font-size: 20px;
+      line-height: 1.65;
+      color: var(--muted);
+      margin-bottom: 40px;
+      font-family: var(--font-display);
+    }
+    p { margin-bottom: 20px; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Hero ── */
+    .hero {
+      padding-top: 140px;
+      padding-bottom: 60px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .stage-badge {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      padding: 6px 16px;
+      margin-bottom: 32px;
+    }
+    .hero h1 { margin-bottom: 12px; }
+    .hero-subtitle {
+      font-family: var(--font-display);
+      font-size: 20px;
+      color: var(--muted);
+      margin-bottom: 48px;
+    }
+    .hero-meta {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+    }
+
+    /* ── Timeline strip ── */
+    .timeline-strip {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 48px;
+      flex-wrap: wrap;
+    }
+    .timeline-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--border);
+    }
+    .timeline-dot.active {
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(180, 80, 40, 0.15);
+    }
+    .timeline-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 8px;
+      text-align: center;
+      width: 100%;
+    }
+
+    /* ── Pull quote ── */
+    .pull-quote {
+      border-left: 3px solid var(--accent);
+      padding-left: 28px;
+      margin: 48px 0;
+      font-family: var(--font-display);
+      font-size: 22px;
+      line-height: 1.5;
+      color: var(--fg);
+    }
+    .pull-quote cite {
+      display: block;
+      margin-top: 12px;
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-style: normal;
+      color: var(--muted);
+    }
+
+    /* ── Story block ── */
+    .story-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 32px;
+      margin: 40px 0;
+    }
+    .story-block h4 {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+
+    /* ── Timeline events ── */
+    .events-list {
+      list-style: none;
+      margin: 32px 0;
+    }
+    .events-list li {
+      display: flex;
+      gap: 20px;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .events-list li:last-child { border-bottom: none; }
+    .event-year {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--accent);
+      min-width: 56px;
+      font-weight: 600;
+    }
+    .event-text {
+      font-size: 15px;
+      color: var(--fg);
+    }
+
+    /* ── Personas ── */
+    .personas-grid {
+      display: grid;
+      gap: 24px;
+      margin: 40px 0;
+    }
+    .persona-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 32px;
+    }
+    .persona-card h4 {
+      font-family: var(--font-display);
+      font-size: 20px;
+      margin-bottom: 4px;
+    }
+    .persona-role {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+    .persona-scene {
+      font-size: 15px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+    .persona-scene strong { color: var(--fg); }
+
+    /* ── Product cards ── */
+    .products-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      margin: 32px 0;
+    }
+    .product-card {
+      border: 1px solid var(--border);
+      padding: 24px;
+      transition: border-color 0.2s;
+    }
+    .product-card:hover { border-color: var(--accent); }
+    .product-card h4 {
+      font-family: var(--font-display);
+      font-size: 18px;
+      margin-bottom: 6px;
+    }
+    .product-card .product-year {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+    .product-card p {
+      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 0;
+    }
+
+    /* ── Insight card ── */
+    .insight-grid {
+      display: grid;
+      gap: 20px;
+      margin: 32px 0;
+    }
+    .insight-card {
+      border-left: 3px solid var(--accent);
+      padding-left: 24px;
+    }
+    .insight-card h4 {
+      font-family: var(--font-display);
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+    .insight-card p {
+      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 0;
+    }
+
+    /* ── Keywords ── */
+    .keyword-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      margin: 32px 0;
+    }
+    .keyword-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 24px;
+    }
+    .keyword-card h4 {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    .keyword-card .keyword-cn {
+      font-family: var(--font-display);
+      font-size: 18px;
+      margin-bottom: 4px;
+    }
+    .keyword-card .keyword-en {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .keyword-card p {
+      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 0;
+    }
+
+    /* ── Compare ── */
+    .compare-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 32px;
+      margin: 32px 0;
+    }
+    .compare-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 20px;
+    }
+    .compare-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .compare-row:last-child { border-bottom: none; }
+    .compare-cell h5 {
+      font-family: var(--font-display);
+      font-size: 16px;
+      margin-bottom: 6px;
+    }
+    .compare-cell p {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 0;
+    }
+    .compare-vs {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* ── Connection map ── */
+    .connection-list {
+      margin: 32px 0;
+      padding-left: 0;
+      list-style: none;
+    }
+    .connection-list li {
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 15px;
+    }
+    .connection-list li:last-child { border-bottom: none; }
+    .connection-list .conn-keyword {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: var(--accent);
+    }
+    .connection-list .conn-arrow {
+      color: var(--muted);
+      margin: 0 8px;
+    }
+
+    /* ── Courses ── */
+    .courses-list {
+      display: grid;
+      gap: 16px;
+      margin: 32px 0;
+    }
+    .course-item {
+      border: 1px solid var(--border);
+      padding: 24px;
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+    }
+    .course-num {
+      font-family: var(--font-mono);
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--accent);
+      line-height: 1;
+      min-width: 36px;
+    }
+    .course-info h4 {
+      font-family: var(--font-display);
+      font-size: 18px;
+      margin-bottom: 4px;
+    }
+    .course-meta {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+    .course-info p {
+      font-size: 15px;
+      color: var(--muted);
+      margin-bottom: 0;
+    }
+    .course-tag {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 2px 8px;
+      margin-top: 10px;
+    }
+
+    /* ── Next stage teaser ── */
+    .teaser {
+      text-align: center;
+      padding: 80px 0;
+    }
+    .teaser h2 { margin-bottom: 16px; }
+    .teaser p {
+      color: var(--muted);
+      margin-bottom: 32px;
+    }
+    .teaser-btn {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      padding: 10px 28px;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .teaser-btn:hover {
+      background: var(--accent);
+      color: var(--surface);
+      text-decoration: none;
+    }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 48px var(--gutter);
+      border-top: 1px solid var(--border);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* ── Responsive ── */
+    @media (min-width: 640px) {
+      .personas-grid { grid-template-columns: repeat(2, 1fr); }
+      .products-grid { grid-template-columns: repeat(2, 1fr); }
+      .keyword-grid  { grid-template-columns: repeat(2, 1fr); }
+      .insight-grid  { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (min-width: 860px) {
+      .personas-grid { grid-template-columns: repeat(3, 1fr); }
+      .products-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Progress -->
+  <div class="progress-track">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="nav-bar">
+    <div class="nav-inner">
+      <div class="nav-brand"><strong>架构演进</strong> / 阶段四</div>
+      <ul class="nav-links">
+        <li><a href="index.html" class="nav-home">← 首页</a></li>
+        <li><a href="#why" data-section="why">起源</a></li>
+        <li><a href="#people" data-section="people">人物</a></li>
+        <li><a href="#products" data-section="products">产品</a></li>
+        <li><a href="#mind" data-section="mind">认知</a></li>
+        <li><a href="#keywords" data-section="keywords">关键词</a></li>
+        <li><a href="#courses" data-section="courses">课程</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main>
+    <!-- ═══════════════════════════════════════════════
+         HERO
+         ═══════════════════════════════════════════════ -->
+    <header class="hero">
+      <div class="stage-badge">阶段四 / 共八阶段</div>
+      <h1>微服务架构时代</h1>
+      <p class="hero-subtitle">2010s – 2020s · 当服务不仅拆开，还要各自独立生活</p>
+      <p class="hero-meta">产品架构演进之旅 · 面向 AI 产品经理的叙事课件</p>
+
+      <div class="timeline-strip">
+        <div class="timeline-dot"></div>
+        <div class="timeline-dot"></div>
+        <div class="timeline-dot"></div>
+        <div class="timeline-dot active"></div>
+        <div class="timeline-dot"></div>
+        <div class="timeline-dot"></div>
+        <div class="timeline-label">单体 → 分层 → SOA → 微服务 → 云原生 → Prompt → RAG+Agent → Multi-Agent</div>
+      </div>
+    </header>
+
+    <!-- ═══════════════════════════════════════════════
+         01 为什么会诞生
+         ═══════════════════════════════════════════════ -->
+    <section id="why">
+      <span class="section-label">01 / 起源</span>
+      <h2>从"乐高积木"到"独立小屋"</h2>
+      <p class="lead">
+        SOA 解决了"系统之间如何对话"的问题，但它留下了一个更棘手的后遗症：虽然逻辑上拆成了服务，物理上却仍然绑在同一个 ESB 和同一组服务器里。就像乐高积木虽然形状各异，但全部堆在一个盒子里——找起来还是麻烦。
+      </p>
+
+      <p>
+        要理解微服务为什么诞生，我们必须先回到<strong>SOA 晚期的困境</strong>。到了 2010 年前后，使用过 SOA 的企业发现了一个尴尬的事实：ESB（企业服务总线）这个曾经的"救星"，正在成为新的瓶颈。所有服务之间的通信都要经过 ESB，它就像一个繁忙的十字路口——车少的时候很高效，但车一多就堵死。更麻烦的是，ESB 本身是一个巨大的单体中间件，升级一次需要全公司停服维护。
+      </p>
+
+      <div class="pull-quote">
+        "我们拆掉了代码的单体，却造了一个中间件的单体。"
+        <cite>—— 2012 年某金融科技公司架构师的内部吐槽</cite>
+      </div>
+
+      <p>
+        与此同时，一批<strong>互联网原生公司</strong>正在以令人目眩的速度崛起。Netflix 从邮寄 DVD 转型在线流媒体后，用户量呈指数级增长——它每天需要处理数十亿次视频播放请求，而每个用户的推荐内容都不相同。Amazon 的电商系统要支撑"黑色星期五"的瞬时流量洪峰——平常 100 台服务器够用，但促销期间需要瞬间扩展到 1000 台。
+      </p>
+
+      <p>
+        <strong>关键转折点同样不是单一事件，而是五股力量的汇聚：</strong>
+      </p>
+
+      <div class="story-block">
+        <h4>五股推动力</h4>
+        <p>
+          <strong>① 互联网规模的爆炸（2008–2015）：</strong>移动互联网时代到来，用户从"百万级"跃升到"十亿级"。Facebook 2012 年月活突破 10 亿，微信 2013 年月活突破 3 亿。传统的单体架构或 SOA 部署模式无法支撑这种规模——<strong>你需要的是"某个服务忙了就多开几台机器"，而不是"整个系统一起扩容"</strong>。微服务让"按需独立扩展"成为可能。
+        </p>
+        <p style="margin-top:16px">
+          <strong>② 容器化革命——Docker（2013）：</strong>Docker 发布了一个看似简单的工具：它可以把一个应用和它依赖的所有环境（操作系统库、配置文件、运行时）打包成一个"集装箱"（容器）。这个集装箱可以在任何机器上运行，而且<strong>启动只需要几秒钟</strong>。它解决了一个困扰行业 20 年的问题："在我的机器上能跑，怎么到服务器上就挂了？" 容器化让微服务的独立部署从技术幻想变成了工程现实。
+        </p>
+        <p style="margin-top:16px">
+          <strong>③ DevOps 文化的成熟（2009–2015）：</strong>2009 年，两位工程师在比利时举办了第一届 DevOpsDays 大会，正式提出了"DevOps"这个词。核心理念是：<strong>开发和运维不应该是两个对立的部门，而应该是一件事。</strong> "谁写的代码，谁负责把它跑起来。" 这种文化转变打破了"开发写完扔给运维部署"的传统流程。当开发者需要自己部署和监控服务时，他们自然希望服务越小、越独立越好——因为一个庞大的单体系统，开发者根本没法自己运维。
+        </p>
+        <p style="margin-top:16px">
+          <strong>④ 敏捷与持续交付（2001–2010）：</strong>敏捷宣言（2001）和持续集成/持续部署（CI/CD）实践的成熟，让企业追求"每天发布多次"。但单体架构的发布周期仍以月计——因为任何改动都要测试整个系统。微服务的逻辑是：<strong>我只改了我的小服务，为什么要测试别人的服务？</strong> 这让"每天发布几十次"成为可能。Netflix 在 2014 年达到了每天发布数千次的频率。
+        </p>
+        <p style="margin-top:16px">
+          <strong>⑤ 云计算的成熟（2006–2015）：</strong>AWS EC2（2006）让企业获取服务器像拧开水龙头一样简单——需要时就开，不需要就关，按秒计费。但这种"弹性"只对独立部署的单元有意义。如果整个系统是一个单体，你无法只扩展"订单模块"而不扩展"报表模块"。云计算的弹性特性，从经济上倒逼了架构的服务化拆分。
+        </p>
+      </div>
+
+      <p>
+        那么，<strong>科学认知发生了怎样的变化</strong>？在 SOA 时代，人们相信"松耦合"——服务之间减少直接依赖。到了微服务时代，认知进一步升级为<strong>"独立部署"（Independent Deployability）</strong>。核心思想来自一个看似不相关的领域——组织行为学中的<strong>康威定律（Conway's Law, 1967）</strong>："设计系统的组织，其产生的设计等价于组织之间的沟通结构。"
+      </p>
+
+      <p>
+        Netflix、Amazon 等公司的工程师们在实践中发现：如果你的团队结构是"一个大团队维护一个大系统"，系统就会不可避免地长成单体。但如果你把团队拆成 8–10 人的小团队，每个小团队全权负责一个服务（从设计、开发、测试到部署、监控），系统就会自然长成微服务的形态。<strong>微服务不仅是一种技术架构，更是一种组织架构。</strong>
+      </p>
+
+      <p>
+        为什么是<strong>微服务</strong>而不是别的方向？因为互联网公司的竞争速度已经不允许"半年发布一次大版本"了。当竞争对手每周上线新功能时，你的月级发布节奏就是死亡倒计时。微服务让"小步快跑、快速试错"成为可能——改一个按钮的颜色？只部署前端服务，5 分钟上线。测试一个新算法？只部署推荐服务，不影响支付流程。
+      </p>
+
+      <p>
+        但请注意：微服务时代<strong>仍然没有解决分布式系统的根本复杂性</strong>。服务拆多了之后，新问题接踵而至：一个请求经过了 27 个服务，出问题时不知道哪里坏了；服务之间的网络通信可能失败；数据分散在不同数据库里，一致性难以保证。这些问题催生了下一个阶段（云原生）的各种治理工具。
+      </p>
+
+      <h3>关键事件时间线</h3>
+      <ul class="events-list">
+        <li>
+          <span class="event-year">2007</span>
+          <span class="event-text">Netflix 开始从邮寄 DVD 向在线流媒体转型，为后来的微服务化埋下种子。</span>
+        </li>
+        <li>
+          <span class="event-year">2009</span>
+          <span class="event-text">第一届 DevOpsDays 大会在比利时举办，"DevOps"概念诞生。同时，Node.js 发布，JavaScript 开始进军服务端。</span>
+        </li>
+        <li>
+          <span class="event-year">2011</span>
+          <span class="event-text">Netflix 开始大规模重构为微服务架构，开源了 Zuul（API 网关）、Eureka（服务发现）、Hystrix（熔断器）等工具。</span>
+        </li>
+        <li>
+          <span class="event-year">2012</span>
+          <span class="event-text">"微服务"（Microservices）一词被 ThoughtWorks 技术雷达正式关注。同年，微信朋友圈上线，社交网络进入移动端。</span>
+        </li>
+        <li>
+          <span class="event-year">2013</span>
+          <span class="event-text">Docker 1.0 发布，容器化革命正式开始。同年，React（Facebook）发布，前端也开始组件化/服务化。</span>
+        </li>
+        <li>
+          <span class="event-year">2014</span>
+          <span class="event-text">Kubernetes 开源（Google 贡献）、Spring Boot 1.0 发布、AWS Lambda 发布。"云原生"概念开始萌芽。</span>
+        </li>
+        <li>
+          <span class="event-year">2015</span>
+          <span class="event-text">云原生计算基金会（CNCF）成立。Prometheus 监控系统和 Grafana 可视化成为开源标准。Docker Swarm 和 Kubernetes 开始容器编排之争。</span>
+        </li>
+        <li>
+          <span class="event-year">2016</span>
+          <span class="event-text">抖音/TikTok 上线，基于全球分布式微服务架构的短视频推荐系统颠覆了内容消费模式。</span>
+        </li>
+        <li>
+          <span class="event-year">2017</span>
+          <span class="event-text">Istio 服务网格发布。微服务通信治理从业务代码中抽离，标志着微服务生态工具链的成熟。</span>
+        </li>
+        <li>
+          <span class="event-year">2019</span>
+          <span class="event-text">Kubernetes 赢得容器编排战争，成为事实标准。微服务架构从"先锋实验"变成"企业标配"。</span>
+        </li>
+      </ul>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════
+         02 那个时代的人
+         ═══════════════════════════════════════════════ -->
+    <section id="people">
+      <span class="section-label">02 / 人物</span>
+      <h2>那个时代的人，在干什么</h2>
+      <p class="lead">
+        2010 年代到 2020 年代初，科技公司的办公室里出现了一批新物种：DevOps 工程师、SRE（站点可靠性工程师）、全栈工程师。他们的日常工作不再是"写代码然后交给别人部署"，而是"写代码、打包成容器、推上云端、盯着监控大屏、半夜被告警叫醒"。
+      </p>
+
+      <div class="personas-grid">
+        <div class="persona-card">
+          <h4>小李 · DevOps 工程师 / SRE</h4>
+          <div class="persona-role">2012 – 2020 / Netflix / Amazon / 阿里巴巴</div>
+          <div class="persona-scene">
+            小李的工位上有三块曲面显示器。左边是 <strong>Grafana</strong> 监控大盘——红绿黄三条曲线实时跳动，CPU 使用率、内存占用、请求延迟、错误率……任何一根线越过红线，PagerDuty 就会在他手机上疯狂震动。中间是 <strong>Kubernetes 控制台</strong>——密密麻麻的 Pod 状态列表，绿色表示健康，黄色表示警告，红色表示崩溃。右边是 <strong>Slack</strong>，各种机器人不停地播报："订单服务自动扩容 +20 Pods""支付服务告警：P99 延迟超过 500ms"。他每天的工作是写 <strong>Dockerfile</strong>（定义容器里装什么）、配置 <strong>CI/CD 流水线</strong>（代码提交后自动测试和部署）、处理半夜的告警。他最骄傲的时刻是：某年双十一零点，流量突然暴增 50 倍，系统自动扩容了 3000 个容器，而他在床上只收到一条 Slack 消息"Auto-scaling triggered successfully"，然后翻个身继续睡觉。他最痛苦的是：服务太多了，链路追踪像走迷宫——一个用户下单请求经过了 <strong>27 个微服务</strong>，出问题时他要在 Grafana 里逐层排查，像侦探破案一样。
+          </div>
+        </div>
+
+        <div class="persona-card">
+          <h4>小王 · 全栈工程师 / 微服务开发者</h4>
+          <div class="persona-role">2014 – 2020 / 初创公司 / 互联网公司</div>
+          <div class="persona-scene">
+            小王负责一个独立的微服务——<strong>"用户画像服务"</strong>。从数据库表设计、REST API 接口定义、单元测试、到部署脚本，他一个人全包。每天早上 9:50，他参加团队的 <strong>Stand-up 站会</strong>（大家站着开，防止有人长篇大论），用 1 分钟说："昨天我发布了 3 个版本，修复了推荐算法的 bug；今天要重构用户标签系统。" 他用 <strong>Spring Boot</strong> 写 Java 服务，用 <strong>GitHub Actions</strong> 配置自动化测试，代码提交后 5 分钟内自动跑完 200 个测试用例，通过后自动部署到测试环境。他最骄傲的时刻：产品经理说"能不能在推荐流里加一个'猜你喜欢'的模块？"他从写代码到上线只花了 <strong>2 小时</strong>——而在单体时代，同样的改动需要 2 个月的排期。他最痛苦的是：他改了用户服务的 API 返回格式，忘了通知订单服务团队，结果订单服务一调用就崩溃——"分布式系统的诅咒：改一个地方，塌一片天。"
+          </div>
+        </div>
+
+        <div class="persona-card">
+          <h4>小芳 · 普通移动互联网用户</h4>
+          <div class="persona-role">2012 – 2020 / 中国移动互联网黄金一代</div>
+          <div class="persona-scene">
+            小芳的一天被 App 填满：早上 8 点用 <strong>滴滴</strong> 打车（实时看到司机位置和预计到达时间），中午 12 点用 <strong>美团</strong> 点外卖（实时追踪骑手位置），晚上 9 点躺床上刷 <strong>抖音</strong>（推荐算法像读心术一样给她推喜欢的视频）。双十一零点，她在淘宝秒杀 iPhone，1 秒钟内完成了支付——背后是 <strong>数千个微服务</strong> 的协同：商品服务查库存、价格服务算优惠、订单服务创建订单、支付服务调支付宝、库存服务扣减、消息服务发确认短信。她不知道什么是 Kubernetes，但她能感知到变化："现在的 App 越来越快了，以前打开要等 5 秒，现在秒开；推荐的东西越来越准了。" 她也经历过崩溃：某次春节期间，某个 App 的服务挂了，页面显示"系统繁忙，请稍后再试"——这是她唯一能感知到的"微服务故障"。她不知道的是，那个"系统繁忙"的提示本身，就是一个叫"熔断器"的微服务机制在保护整个系统不被拖垮。
+          </div>
+        </div>
+      </div>
+
+      <div class="pull-quote">
+        "2014 年，我第一次用 Uber 叫车，看到地图上那个小车的图标在实时移动。那一刻我知道，移动互联网和之前的互联网，已经完全不是同一个东西了。"
+        <cite>—— 一位早期 Uber 用户的回忆</cite>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════
+         03 涌现的产品
+         ═══════════════════════════════════════════════ -->
+    <section id="products">
+      <span class="section-label">03 / 产品</span>
+      <h2>那个时代诞生了什么</h2>
+      <p class="lead">
+        微服务时代是现代互联网体验的全面爆发期。我们今天习以为常的"实时推荐""秒杀抢购""即时配送"，都建立在微服务架构之上。同时，一批支撑微服务的"基础设施"产品也在这个时代诞生，它们后来成了云原生时代的基石。
+      </p>
+
+      <div class="products-grid">
+        <div class="product-card">
+          <h4>Netflix</h4>
+          <div class="product-year">2007 转型 · 2011 微服务化 · 流媒体</div>
+          <p>微服务架构的标杆企业。2011 年开始将庞大的单体系统拆分为数百个微服务，并开源了 Zuul（API 网关）、Eureka（服务发现）、Hystrix（熔断器）等工具。它的"混沌工程"（Chaos Engineering）理念——故意搞崩系统来测试韧性——深刻影响了整个行业。</p>
+        </div>
+        <div class="product-card">
+          <h4>Uber</h4>
+          <div class="product-year">2010 · 实时出行平台</div>
+          <p>将"打车"这个简单需求拆解为数十个微服务：用户服务、司机服务、地图服务、定价服务、支付服务、消息服务、评价服务……每个服务独立部署、独立扩展。高峰时段自动增加司机匹配服务的实例，平时缩减以节省成本。</p>
+        </div>
+        <div class="product-card">
+          <h4>Docker</h4>
+          <div class="product-year">2013 · 容器化平台</div>
+          <p>把应用和它依赖的一切（操作系统库、配置文件、运行时环境）打包成一个轻量级"集装箱"。解决"在我的机器上能跑"的经典问题。容器启动只需秒级，资源占用仅为虚拟机的 1/10，让微服务的独立部署成为工程现实。</p>
+        </div>
+        <div class="product-card">
+          <h4>Kubernetes (K8s)</h4>
+          <div class="product-year">2014 开源 · 容器编排平台</div>
+          <p>Google 将其内部 Borg 系统的经验开源，用于自动化管理成百上千个容器：自动部署、自动扩容、自动故障恢复、自动负载均衡。Kubernetes 最终赢得了容器编排战争，成为云原生时代的事实标准。</p>
+        </div>
+        <div class="product-card">
+          <h4>Spring Boot</h4>
+          <div class="product-year">2014 · Java 微服务框架</div>
+          <p>Pivotal 推出的"约定优于配置"框架。它让 Java 微服务的开发变得极其简单——几行代码就能启动一个可独立运行的 Web 服务，内置了嵌入式 Tomcat、自动配置、健康检查端点。是 Java 生态微服务化的最大推动力。</p>
+        </div>
+        <div class="product-card">
+          <h4>AWS Lambda</h4>
+          <div class="product-year">2014 · 无服务器计算</div>
+          <p>Amazon 推出的"Function as a Service"——你只需上传一段代码（函数），云平台自动处理运行、扩容、监控的一切。无需管理服务器，按调用次数付费。这是微服务思想的极致延伸：服务小到只剩一个函数。</p>
+        </div>
+        <div class="product-card">
+          <h4>Prometheus + Grafana</h4>
+          <div class="product-year">2015/2014 · 监控与可视化</div>
+          <p>Prometheus 是时序数据库，专门收集微服务的指标数据（CPU、内存、请求数、错误率）；Grafana 是可视化仪表盘，把这些数据变成漂亮的图表。两者组合成为微服务时代的事实标准监控方案。</p>
+        </div>
+        <div class="product-card">
+          <h4>Istio</h4>
+          <div class="product-year">2017 · 服务网格</div>
+          <p>微服务多了之后，服务之间的通信管理（流量控制、安全认证、故障注入、链路追踪）成了巨大的负担。Istio 把这些能力从业务代码中抽离，作为一个独立的基础设施层（"Sidecar"代理）注入每个服务旁边。</p>
+        </div>
+        <div class="product-card">
+          <h4>微信 / 抖音 (TikTok)</h4>
+          <div class="product-year">2011 / 2016 · 超级 App</div>
+          <p>微信的公众号、小程序、支付、朋友圈，抖音的推荐算法、视频处理、直播、电商，每一个功能模块背后都是独立的微服务集群。它们代表了中国互联网公司微服务实践的巅峰——支撑十亿级用户的实时互动。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════
+         04 心理学认知
+         ═══════════════════════════════════════════════ -->
+    <section id="mind">
+      <span class="section-label">04 / 认知</span>
+      <h2>那个时代的人，心里在想什么</h2>
+      <p class="lead">
+        微服务时代不仅改变了技术的组织方式，更深刻地重塑了工程师和企业的思维模式。这四个心理转变，为后来的云原生和 AI Native 奠定了文化基础。
+      </p>
+
+      <div class="insight-grid">
+        <div class="insight-card">
+          <h4>认知一：小 = 美 = 敏捷</h4>
+          <p>人们开始相信，<strong>小而美的团队 + 小而美的服务 &gt; 大而全的团队 + 庞大的单体</strong>。亚马逊的"两个披萨团队"原则（一个团队的人数不超过两个披萨能吃饱的量，约 8–10 人）成为行业共识。每个小团队全权负责一个微服务，决策快、迭代快、责任清晰。"大"不再等同于"强"——一个 50 人的大团队维护的单体系统，往往不如 5 个 10 人小团队维护的 5 个微服务灵活。</p>
+        </div>
+        <div class="insight-card">
+          <h4>认知二：自动化 = 信任 = 敢发布</h4>
+          <p>在单体时代，发布是一件让人紧张的大事——"今晚要发版，全员待命，出问题就回滚。" 微服务时代，CI/CD 自动化流水线让发布变成了日常操作。代码提交后自动跑测试、自动构建容器镜像、自动部署到生产环境。工程师对自动化的信任越深，发布频率就越高。Netflix 2014 年达到<strong>每天发布数千次</strong>——不是因为他们更勇敢，而是因为自动化让他们相信"即使出问题，也能在几分钟内修复"。</p>
+        </div>
+        <div class="insight-card">
+          <h4>认知三：失败 = 正常 = 学习机会</h4>
+          <p>Netflix 的"混沌工程"（Chaos Engineering）彻底颠覆了人们对"系统稳定性"的认知。传统观念是："我们要尽力避免故障。" Netflix 的观念是："<strong>故障一定会发生，我们要学会在故障中存活。</strong>" 他们甚至开发了一个叫"Chaos Monkey"的工具，随机在生产环境关闭服务器——倒逼工程师设计能自动恢复的韧性系统。这种"拥抱失败"的文化，后来演变成了云原生时代的"反脆弱"理念。</p>
+        </div>
+        <div class="insight-card">
+          <h4>认知四：观测 = 掌控</h4>
+          <p>微服务拆多了之后，没人能在大脑里记住整个系统的全貌。这时候，<strong>监控、日志、链路追踪</strong> 成了工程师的"外接大脑"。Grafana 仪表盘上的曲线图、Kibana 里的日志搜索、Jaeger 里的调用链路图——这些可视化工具让工程师有了"上帝视角"。没有观测的微服务系统就像没有雷达的飞机，飞得越快越危险。"可观测性"（Observability）从一个运维概念变成了架构设计的核心原则。</p>
+        </div>
+      </div>
+
+      <div class="pull-quote">
+        "在 Netflix，我们不追求系统零故障。我们追求的是：当故障发生时，用户不会察觉。"
+        <cite>—— Ariel Tseitlin，Netflix 云架构总监，2013 年</cite>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════
+         05 关键词
+         ═══════════════════════════════════════════════ -->
+    <section id="keywords">
+      <span class="section-label">05 / 关键词</span>
+      <h2>关键词词典</h2>
+      <p class="lead">
+        微服务时代创造了一套全新的技术词汇。这些词今天仍是云计算和云原生领域的核心术语。
+      </p>
+
+      <div class="keyword-grid">
+        <div class="keyword-card">
+          <h4>KEYWORD 01</h4>
+          <div class="keyword-cn">微服务</div>
+          <div class="keyword-en">Microservices</div>
+          <p>一种架构风格，把系统拆分为<strong>一组小型、独立部署的服务</strong>，每个服务围绕单一业务能力构建，由独立的小团队全权负责（从开发到运维）。微服务的核心理念不是"拆得越细越好"，而是"拆到刚好能独立发布"。判断标准：改一个服务，不需要改动其他服务。</p>
+        </div>
+        <div class="keyword-card">
+          <h4>KEYWORD 02</h4>
+          <div class="keyword-cn">容器化</div>
+          <div class="keyword-en">Containerization / Docker</div>
+          <p>把应用和它依赖的一切（代码、运行时、系统工具、库、配置）打包成一个<strong>轻量级、可移植的"集装箱"</strong>。容器与虚拟机的区别：虚拟机像一栋独立小楼（有自己的地基、墙壁、水电），容器像公寓楼里的一个房间（共享大楼的基础设施，但内部独立装修）。容器启动只需秒级，而虚拟机需要分钟级。</p>
+        </div>
+        <div class="keyword-card">
+          <h4>KEYWORD 03</h4>
+          <div class="keyword-cn">Kubernetes</div>
+          <div class="keyword-en">K8s · 容器编排</div>
+          <p>自动化管理大量容器的平台，负责容器的<strong>部署、扩容、缩容、故障恢复、负载均衡</strong>。你可以把 Kubernetes 想象成一个"集装箱码头调度中心"：它知道每个集装箱（容器）应该放在哪艘船（服务器）上，当某艘船满了自动调新船，当某艘船沉了自动把集装箱转移到其他船上。</p>
+        </div>
+        <div class="keyword-card">
+          <h4>KEYWORD 04</h4>
+          <div class="keyword-cn">DevOps</div>
+          <div class="keyword-en">Development + Operations</div>
+          <p>一种<strong>文化和实践</strong>，打破开发团队和运维团队之间的壁垒，让同一批人既负责写代码，也负责把它跑起来。核心理念："谁构建，谁运行。" DevOps 不是某个工具或职位，而是一套工作方式——包括自动化测试、CI/CD、基础设施即代码、监控告警等。</p>
+        </div>
+        <div class="keyword-card">
+          <h4>KEYWORD 05</h4>
+          <div class="keyword-cn">CI/CD</div>
+          <div class="keyword-en">Continuous Integration / Continuous Deployment</div>
+          <p><strong>持续集成（CI）</strong>：开发者频繁地将代码合并到主干，每次合并自动运行测试，尽早发现问题。<strong>持续部署（CD）</strong>：测试通过后，代码自动部署到生产环境。CI/CD 让"写代码 → 上线"的周期从月缩短到小时甚至分钟。常见的 CI/CD 工具：Jenkins、GitHub Actions、GitLab CI、CircleCI。</p>
+        </div>
+        <div class="keyword-card">
+          <h4>KEYWORD 06</h4>
+          <div class="keyword-cn">API 网关</div>
+          <div class="keyword-en">API Gateway</div>
+          <p>微服务架构的<strong>"统一大门"</strong>。所有外部请求（来自浏览器、App、第三方）先到 API 网关，网关负责：路由（把请求转发到对应的服务）、认证（验证用户身份）、限流（防止某个服务被冲垮）、负载均衡。API 网关让客户端不需要知道后端有几十个服务，只看到一个统一的入口。</p>
+        </div>
+        <div class="keyword-card">
+          <h4>KEYWORD 07</h4>
+          <div class="keyword-cn">服务发现</div>
+          <div class="keyword-en">Service Discovery</div>
+          <p>微服务之间如何找到彼此。在传统架构中，服务的地址（IP 和端口）是固定的。但在微服务时代，容器频繁创建和销毁，IP 地址是动态变化的。<strong>服务发现</strong>就像一个"动态通讯录"——每个服务启动时把自己的地址注册进去，其他服务需要调用时去"查通讯录"。代表工具：Eureka、Consul、etcd。</p>
+        </div>
+        <div class="keyword-card">
+          <h4>KEYWORD 08</h4>
+          <div class="keyword-cn">服务网格</div>
+          <div class="keyword-en">Service Mesh / Istio</div>
+          <p>把微服务之间的<strong>通信管理</strong>（流量控制、安全认证、故障注入、链路追踪）从业务代码中抽离出来，作为一个独立的基础设施层。实现方式：在每个服务旁边部署一个"Sidecar"代理（像摩托车的边斗），所有进出服务的流量都经过这个代理。代表工具：Istio、Linkerd。</p>
+        </div>
+      </div>
+
+      <h3>关键词之间的联系</h3>
+      <ul class="connection-list">
+        <li>
+          <span class="conn-keyword">SOA 的 ESB 瓶颈</span>
+          <span class="conn-arrow">→ 催生 →</span>
+          <span class="conn-keyword">微服务思想（去中心化）</span>
+          <span class="conn-arrow">→ 需要 →</span>
+          <span class="conn-keyword">独立部署能力</span>
+          <span class="conn-arrow">→ 催生 →</span>
+          <span class="conn-keyword">容器化（Docker）</span>
+        </li>
+        <li>
+          <span class="conn-keyword">容器化（Docker）</span>
+          <span class="conn-arrow">→ 产生 →</span>
+          <span class="conn-keyword">大量容器需要管理</span>
+          <span class="conn-arrow">→ 催生 →</span>
+          <span class="conn-keyword">Kubernetes（容器编排）</span>
+          <span class="conn-arrow">→ 实现 →</span>
+          <span class="conn-keyword">自动扩缩容</span>
+        </li>
+        <li>
+          <span class="conn-keyword">微服务独立部署</span>
+          <span class="conn-arrow">→ 要求 →</span>
+          <span class="conn-keyword">频繁发布</span>
+          <span class="conn-arrow">→ 催生 →</span>
+          <span class="conn-keyword">CI/CD 自动化</span>
+          <span class="conn-arrow">→ 依赖 →</span>
+          <span class="conn-keyword">DevOps 文化</span>
+        </li>
+        <li>
+          <span class="conn-keyword">大量微服务</span>
+          <span class="conn-arrow">→ 需要 →</span>
+          <span class="conn-keyword">统一入口 & 路由</span>
+          <span class="conn-arrow">→ 催生 →</span>
+          <span class="conn-keyword">API Gateway</span>
+          <span class="conn-arrow">→ 配合 →</span>
+          <span class="conn-keyword">服务发现（动态寻址）</span>
+        </li>
+        <li>
+          <span class="conn-keyword">微服务数量爆炸</span>
+          <span class="conn-arrow">→ 导致 →</span>
+          <span class="conn-keyword">服务间通信复杂</span>
+          <span class="conn-arrow">→ 催生 →</span>
+          <span class="conn-keyword">服务网格（Istio）</span>
+          <span class="conn-arrow">→ 提供 →</span>
+          <span class="conn-keyword">流量治理 & 可观测性</span>
+        </li>
+        <li>
+          <span class="conn-keyword">弹性伸缩需求</span>
+          <span class="conn-arrow">→ 依赖 →</span>
+          <span class="conn-keyword">云计算（AWS/Azure/GCP）</span>
+          <span class="conn-arrow">→ 提供 →</span>
+          <span class="conn-keyword">按需获取计算资源</span>
+          <span class="conn-arrow">→ 加速 →</span>
+          <span class="conn-keyword">微服务普及</span>
+        </li>
+      </ul>
+
+      <h3>易混淆概念辨析</h3>
+      <div class="compare-box">
+        <div class="compare-title">概念对比</div>
+        <div class="compare-row">
+          <div class="compare-cell">
+            <h5>单体架构</h5>
+            <p>所有代码在一个代码库，<strong>一起编译、一起部署</strong>。改一行代码要测试整个系统。适合小团队、需求稳定的产品。</p>
+          </div>
+          <div class="compare-cell">
+            <h5>微服务架构</h5>
+            <p>代码拆成多个独立服务，<strong>分别编译、分别部署</strong>。改一个服务不影响其他。适合大团队、快速迭代的产品。</p>
+          </div>
+        </div>
+        <div class="compare-row">
+          <div class="compare-cell">
+            <h5>SOA</h5>
+            <p>面向<strong>企业级集成</strong>，强调跨系统互通。通常有中央 ESB 管控，适合<strong>异构系统整合</strong>。服务粒度较粗，偏业务导向。</p>
+          </div>
+          <div class="compare-cell">
+            <h5>微服务</h5>
+            <p>面向<strong>敏捷开发和团队自治</strong>，强调独立部署。没有中央 ESB，服务直接通信。服务粒度较细，偏技术导向。</p>
+          </div>
+        </div>
+        <div class="compare-row">
+          <div class="compare-cell">
+            <h5>虚拟机（VM）</h5>
+            <p>模拟完整的计算机（含操作系统），<strong>重、慢、隔离强</strong>。启动需分钟级，资源占用大。适合需要强隔离的场景。</p>
+          </div>
+          <div class="compare-cell">
+            <h5>容器（Container）</h5>
+            <p>共享宿主机操作系统内核，<strong>轻、快、隔离弱</strong>。启动只需秒级，资源占用小。适合微服务的快速扩缩容。</p>
+          </div>
+        </div>
+        <div class="compare-row">
+          <div class="compare-cell">
+            <h5>编排（Orchestration）</h5>
+            <p>宏观层面的管理：<strong>部署什么服务、跑多少实例、服务之间如何连接</strong>。Kubernetes 做的就是编排。</p>
+          </div>
+          <div class="compare-cell">
+            <h5>调度（Scheduling）</h5>
+            <p>微观层面的分配：<strong>这个容器具体放在哪台物理机上</strong>。调度是编排的一个子功能。Kubernetes 的 Scheduler 组件专门负责调度。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════
+         06 推荐课程
+         ═══════════════════════════════════════════════ -->
+    <section id="courses">
+      <span class="section-label">06 / 课程</span>
+      <h2>推荐阅读与课程</h2>
+      <p class="lead">
+        这些资源不是技术教程，而是帮助你理解"微服务时代的思维方式"——适合产品经理和 FDE 阅读。
+      </p>
+
+      <div class="courses-list">
+        <div class="course-item">
+          <div class="course-num">01</div>
+          <div class="course-info">
+            <h4>Netflix Tech Blog</h4>
+            <div class="course-meta">技术博客 · 免费 · 英文</div>
+            <p>Netflix 官方技术博客是微服务实践的"圣经"。文章写得非常通俗，即使没有深厚技术背景也能读懂。重点推荐《A Day in the Life of a Netflix Engineer》和 Chaos Engineering 系列——它们讲述的不是代码，而是<strong>一种工程文化</strong>。</p>
+            <span class="course-tag">产品经理友好</span>
+            <span class="course-tag">文化视角</span>
+          </div>
+        </div>
+
+        <div class="course-item">
+          <div class="course-num">02</div>
+          <div class="course-info">
+            <h4>《The Phoenix Project》</h4>
+            <div class="course-meta">Gene Kim, Kevin Behr, George Spafford · 书籍 · 中文译本《凤凰项目》</div>
+            <p>一本以<strong>小说形式</strong>讲述 DevOps 转型的书。主人公是一位刚被提拔的 IT 经理，面对一团糟的系统和无休止的故障，他如何带领团队走出泥潭。没有一行代码，全是管理和协作的智慧。产品经理读完会深刻理解"为什么发布流程比代码本身更重要"。</p>
+            <span class="course-tag">故事驱动</span>
+            <span class="course-tag">零技术门槛</span>
+          </div>
+        </div>
+
+        <div class="course-item">
+          <div class="course-num">03</div>
+          <div class="course-info">
+            <h4>Google SRE Book</h4>
+            <div class="course-meta">《Site Reliability Engineering》· 免费在线阅读 · 英文</div>
+            <p>Google 官方出版的 SRE（站点可靠性工程）"圣经"。虽然偏技术，但前半部分的概念章节非常通俗——它解释了为什么 Google 把"可靠性"当作一个工程学科来研究，而不是简单的"运维"。产品经理可以重点读第 1–5 章，理解<strong>SLA、SLO、SLI</strong>这些衡量服务质量的指标如何影响产品决策。</p>
+            <span class="course-tag">质量度量</span>
+            <span class="course-tag">概念通俗</span>
+          </div>
+        </div>
+
+        <div class="course-item">
+          <div class="course-num">04</div>
+          <div class="course-info">
+            <h4>Udacity Cloud DevOps Nanodegree</h4>
+            <div class="course-meta">在线课程 · 付费 · 英文</div>
+            <p>一门实操导向的 DevOps 入门课，涵盖 CI/CD、AWS 基础设施、容器化、Kubernetes。虽然是技术课，但它的项目式学习让你<strong>亲手体验"从代码到上线"的完整流程</strong>。即使不亲自动手，只看课程视频也能建立对 DevOps 工作流的直观理解。</p>
+            <span class="course-tag">流程视角</span>
+            <span class="course-tag">实操导向</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════════
+         NEXT STAGE TEASER
+         ═══════════════════════════════════════════════ -->
+    <section class="teaser">
+      <h2>接下来：云原生架构时代</h2>
+      <p>2015 – 2022 · 当微服务遇上云计算的彻底成熟——Serverless、Service Mesh、声明式基础设施</p>
+      <a href="stage-5-cloudnative.html" class="teaser-btn">进入阶段五 →</a>
+    </section>
+  </main>
+
+  <footer>
+    产品架构演进之旅 · 阶段四 / 共六阶段<br>
+    面向 AI 产品经理与 FDE 的叙事课件
+  </footer>
+
+  <script>
+    // Progress bar
+    const progressFill = document.getElementById('progressFill');
+    function updateProgress() {
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const docHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+      const progress = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+      progressFill.style.width = progress + '%';
+    }
+    window.addEventListener('scroll', updateProgress);
+    updateProgress();
+
+    // Active nav link
+    const navLinks = document.querySelectorAll('.nav-links a');
+    const sections = document.querySelectorAll('section[id]');
+    function updateActiveNav() {
+      let current = '';
+      sections.forEach(section => {
+        const sectionTop = section.offsetTop;
+        if (window.scrollY >= sectionTop - 120) {
+          current = section.getAttribute('id');
+        }
+      });
+      navLinks.forEach(link => {
+        link.classList.toggle('active', link.getAttribute('data-section') === current);
+      });
+    }
+    window.addEventListener('scroll', updateActiveNav);
+    updateActiveNav();
+  </script>
+</body>
+</html>
